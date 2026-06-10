@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#0c0f15"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Nuzlocke BW2"/>
+  <title>Nuzlocke Schwarz 2</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.svg"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { min-height: 100%; background: #0c0f15; }
+    body { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo } = React;
+
+// Format: [id, "EN", "DE", catchRate, baseHP, [typen], "Entwicklung"]
+// Entwicklung: null = keine, sonst Beschreibung auf Deutsch
+const BW2_POKEMON = [
+  [1,"Bulbasaur","Bisasam",45,45,["grass","poison"],"→ Bisaknosp Lv.16"],
+  [2,"Ivysaur","Bisaknosp",45,60,["grass","poison"],"→ Bisaflor Lv.32"],
+  [3,"Venusaur","Bisaflor",45,80,["grass","poison"],null],
+  [4,"Charmander","Glumanda",45,39,["fire"],"→ Glutexo Lv.16"],
+  [5,"Charmeleon","Glutexo",45,58,["fire"],"→ Glurak Lv.36"],
+  [6,"Charizard","Glurak",45,78,["fire","flying"],null],
+  [7,"Squirtle","Schiggy",45,44,["water"],"→ Schillok Lv.16"],
+  [8,"Wartortle","Schillok",45,59,["water"],"→ Turtok Lv.36"],
+  [9,"Blastoise","Turtok",45,79,["water"],null],
+  [10,"Caterpie","Raupy",255,45,["bug"],"→ Safcon Lv.7"],
+  [11,"Metapod","Safcon",120,50,["bug"],"→ Smettbo Lv.10"],
+  [12,"Butterfree","Smettbo",45,60,["bug","flying"],null],
+  [13,"Weedle","Hornliu",255,40,["bug","poison"],"→ Kokuna Lv.7"],
+  [14,"Kakuna","Kokuna",120,45,["bug","poison"],"→ Bibor Lv.10"],
+  [15,"Beedrill","Bibor",45,65,["bug","poison"],null],
+  [16,"Pidgey","Taubsi",255,40,["normal","flying"],"→ Tauboga Lv.18"],
+  [17,"Pidgeotto","Tauboga",120,63,["normal","flying"],"→ Tauboss Lv.36"],
+  [18,"Pidgeot","Tauboss",45,83,["normal","flying"],null],
+  [19,"Rattata","Rattfratz",255,30,["normal"],"→ Rattikarl Lv.20"],
+  [20,"Raticate","Rattikarl",127,55,["normal"],null],
+  [21,"Spearow","Habitak",255,40,["normal","flying"],"→ Ibitak Lv.20"],
+  [22,"Fearow","Ibitak",90,65,["normal","flying"],null],
+  [23,"Ekans","Rettan",255,35,["poison"],"→ Arbok Lv.22"],
+  [24,"Arbok","Arbok",90,60,["poison"],null],
+  [25,"Pikachu","Pikachu",190,35,["electric"],"→ Raichu (Donnerstein)"],
+  [26,"Raichu","Raichu",75,60,["electric"],null],
+  [27,"Sandshrew","Sandan",255,50,["ground"],"→ Sandamer Lv.22"],
+  [28,"Sandslash","Sandamer",90,75,["ground"],null],
+  [29,"Nidoran♀","Nidoran♀",235,55,["poison"],"→ Nidorina Lv.16"],
+  [30,"Nidorina","Nidorina",120,70,["poison"],"→ Nidoqueen (Mondstein)"],
+  [31,"Nidoqueen","Nidoqueen",45,90,["poison","ground"],null],
+  [32,"Nidoran♂","Nidoran♂",235,46,["poison"],"→ Nidorino Lv.16"],
+  [33,"Nidorino","Nidorino",120,61,["poison"],"→ Nidoking (Mondstein)"],
+  [34,"Nidoking","Nidoking",45,81,["poison","ground"],null],
+  [35,"Clefairy","Piepi",150,70,["fairy"],"→ Pixi (Mondstein)"],
+  [36,"Clefable","Pixi",25,95,["fairy"],null],
+  [37,"Vulpix","Vulpix",190,38,["fire"],"→ Vulnona (Feuerstein)"],
+  [38,"Ninetales","Vulnona",75,73,["fire"],null],
+  [39,"Jigglypuff","Pummeluff",170,115,["normal","fairy"],"→ Knuddeluff (Mondstein)"],
+  [40,"Wigglytuff","Knuddeluff",50,140,["normal","fairy"],null],
+  [41,"Zubat","Zubat",255,40,["poison","flying"],"→ Golbat Lv.22"],
+  [42,"Golbat","Golbat",90,75,["poison","flying"],"→ Iksbat (hohe Freundschaft)"],
+  [43,"Oddish","Myrapla",255,45,["grass","poison"],"→ Duflor Lv.21"],
+  [44,"Gloom","Duflor",120,60,["grass","poison"],"→ Bleifuss (Blattstein) / Blubella (Sonnenst.)"],
+  [45,"Vileplume","Bleifuss",45,75,["grass","poison"],null],
+  [46,"Paras","Paras",190,35,["bug","grass"],"→ Parasek Lv.24"],
+  [47,"Parasect","Parasek",75,60,["bug","grass"],null],
+  [48,"Venonat","Bluzuk",190,60,["bug","poison"],"→ Omot Lv.31"],
+  [49,"Venomoth","Omot",75,70,["bug","poison"],null],
+  [50,"Diglett","Digda",255,10,["ground"],"→ Digdri Lv.26"],
+  [51,"Dugtrio","Digdri",50,35,["ground"],null],
+  [52,"Meowth","Mauzi",255,40,["normal"],"→ Snobilikat Lv.28"],
+  [53,"Persian","Snobilikat",90,65,["normal"],null],
+  [54,"Psyduck","Enton",190,50,["water"],"→ Golduck Lv.33"],
+  [55,"Golduck","Golduck",75,80,["water"],null],
+  [56,"Mankey","Menki",190,40,["fighting"],"→ Rasaff Lv.28"],
+  [57,"Primeape","Rasaff",75,65,["fighting"],null],
+  [58,"Growlithe","Fukano",190,55,["fire"],"→ Arkani (Feuerstein)"],
+  [59,"Arcanine","Arkani",75,90,["fire"],null],
+  [60,"Poliwag","Quapsel",255,40,["water"],"→ Quaputzi Lv.25"],
+  [61,"Poliwhirl","Quaputzi",120,65,["water"],"→ Quappo (Wasserstein) / Quaxo (Tauschstein)"],
+  [62,"Poliwrath","Quappo",45,90,["water","fighting"],null],
+  [63,"Abra","Abra",200,25,["psychic"],"→ Kadabra Lv.16"],
+  [64,"Kadabra","Kadabra",100,40,["psychic"],"→ Simsala (Tausch)"],
+  [65,"Alakazam","Simsala",50,55,["psychic"],null],
+  [66,"Machop","Machollo",180,70,["fighting"],"→ Maschock Lv.28"],
+  [67,"Machoke","Maschock",90,80,["fighting"],"→ Machomei (Tausch)"],
+  [68,"Machamp","Machomei",45,90,["fighting"],null],
+  [69,"Bellsprout","Knofensa",255,50,["grass","poison"],"→ Ultrigaria Lv.21"],
+  [70,"Weepinbell","Ultrigaria",120,65,["grass","poison"],"→ Sarzenia (Blattstein)"],
+  [71,"Victreebel","Sarzenia",45,80,["grass","poison"],null],
+  [72,"Tentacool","Tentacha",190,40,["water","poison"],"→ Tentoxa Lv.30"],
+  [73,"Tentacruel","Tentoxa",60,80,["water","poison"],null],
+  [74,"Geodude","Kleinstein",255,40,["rock","ground"],"→ Georok Lv.25"],
+  [75,"Graveler","Georok",120,55,["rock","ground"],"→ Geowaz (Tausch)"],
+  [76,"Golem","Geowaz",45,80,["rock","ground"],null],
+  [77,"Ponyta","Ponita",190,50,["fire"],"→ Gallopa Lv.40"],
+  [78,"Rapidash","Gallopa",60,65,["fire"],null],
+  [79,"Slowpoke","Flegmon",190,90,["water","psychic"],"→ Lahmus Lv.37 / Laschoking (Tausch m. Könkünstein)"],
+  [80,"Slowbro","Lahmus",75,95,["water","psychic"],null],
+  [81,"Magnemite","Magnetilo",190,25,["electric","steel"],"→ Magneton Lv.30"],
+  [82,"Magneton","Magneton",60,50,["electric","steel"],"→ Magnezone (Level in Magnetfeldhöhle)"],
+  [83,"Farfetch'd","Porenta",45,52,["normal","flying"],null],
+  [84,"Doduo","Dodu",190,35,["normal","flying"],"→ Dodri Lv.31"],
+  [85,"Dodrio","Dodri",45,60,["normal","flying"],null],
+  [86,"Seel","Jurob",190,65,["water"],"→ Jugong Lv.34"],
+  [87,"Dewgong","Jugong",75,90,["water","ice"],null],
+  [88,"Grimer","Sleima",190,80,["poison"],"→ Sleimok Lv.38"],
+  [89,"Muk","Sleimok",75,105,["poison"],null],
+  [90,"Shellder","Muschas",190,30,["water"],"→ Austos (Wasserstein)"],
+  [91,"Cloyster","Austos",60,50,["water","ice"],null],
+  [92,"Gastly","Nebulak",190,30,["ghost","poison"],"→ Alpollo Lv.25"],
+  [93,"Haunter","Alpollo",90,45,["ghost","poison"],"→ Gengar (Tausch)"],
+  [94,"Gengar","Gengar",45,60,["ghost","poison"],null],
+  [95,"Onix","Onix",45,35,["rock","ground"],"→ Stahlos (Tausch m. Metallmantel)"],
+  [96,"Drowzee","Traumato",190,60,["psychic"],"→ Hypno Lv.26"],
+  [97,"Hypno","Hypno",75,85,["psychic"],null],
+  [98,"Krabby","Krabby",225,30,["water"],"→ Kingler Lv.28"],
+  [99,"Kingler","Kingler",60,55,["water"],null],
+  [100,"Voltorb","Voltobal",190,40,["electric"],"→ Lektrobal Lv.30"],
+  [101,"Electrode","Lektrobal",60,60,["electric"],null],
+  [102,"Exeggcute","Owei",90,60,["grass","psychic"],"→ Kokowei (Blattstein)"],
+  [103,"Exeggutor","Kokowei",45,95,["grass","psychic"],null],
+  [104,"Cubone","Tragosso",190,50,["ground"],"→ Knogga Lv.28"],
+  [105,"Marowak","Knogga",75,60,["ground"],null],
+  [106,"Hitmonlee","Kicklee",45,50,["fighting"],null],
+  [107,"Hitmonchan","Nockchan",45,50,["fighting"],null],
+  [108,"Lickitung","Schlurp",45,90,["normal"],"→ Schlurplek (Rollout lernen)"],
+  [109,"Koffing","Smogon",190,40,["poison"],"→ Smogmog Lv.35"],
+  [110,"Weezing","Smogmog",60,65,["poison"],null],
+  [111,"Rhyhorn","Rihorn",120,80,["ground","rock"],"→ Rizeros Lv.42"],
+  [112,"Rhydon","Rizeros",60,105,["ground","rock"],"→ Rihornior (Tausch m. Protektor)"],
+  [113,"Chansey","Chaneira",30,250,["normal"],"→ Blissey (hohe Freundschaft)"],
+  [114,"Tangela","Tangela",45,65,["grass"],"→ Tangoloss (Rankenhieb lernen)"],
+  [115,"Kangaskhan","Kangama",45,105,["normal"],null],
+  [116,"Horsea","Seeper",225,30,["water"],"→ Seemon Lv.32"],
+  [117,"Seadra","Seemon",75,55,["water"],"→ Seedraking (Tausch m. Drachenschuppe)"],
+  [118,"Goldeen","Goldini",225,45,["water"],"→ Golking Lv.33"],
+  [119,"Seaking","Golking",60,80,["water"],null],
+  [120,"Staryu","Sterndu",225,30,["water"],"→ Starmie (Wasserstein)"],
+  [121,"Starmie","Starmie",60,60,["water","psychic"],null],
+  [122,"Mr. Mime","Pantimos",45,40,["psychic","fairy"],null],
+  [123,"Scyther","Scyther",45,70,["bug","flying"],"→ Scherox (Tausch m. Metallmantel)"],
+  [124,"Jynx","Rossana",45,65,["ice","psychic"],null],
+  [125,"Electabuzz","Elekid",45,65,["electric"],"→ Elevoltek (Tausch m. Elektrisator)"],
+  [126,"Magmar","Magmar",45,65,["fire"],"→ Magbrant (Tausch m. Magmarisator)"],
+  [127,"Pinsir","Pinsir",45,65,["bug"],null],
+  [128,"Tauros","Tauros",45,75,["normal"],null],
+  [129,"Magikarp","Karpador",255,20,["water"],"→ Garados Lv.20"],
+  [130,"Gyarados","Garados",45,95,["water","flying"],null],
+  [131,"Lapras","Lapras",45,130,["water","ice"],null],
+  [133,"Eevee","Evoli",45,55,["normal"],"→ 8 Entwicklungen (Steine/Freundschaft/Level/Tausch)"],
+  [134,"Vaporeon","Aquana",45,130,["water"],null],
+  [135,"Jolteon","Blitza",45,65,["electric"],null],
+  [136,"Flareon","Flamara",45,65,["fire"],null],
+  [137,"Porygon","Porygon",45,65,["normal"],"→ Porygon2 (Tausch m. Upgrade)"],
+  [138,"Omanyte","Amonitas",45,35,["rock","water"],"→ Amoroso Lv.40"],
+  [139,"Omastar","Amoroso",45,70,["rock","water"],null],
+  [140,"Kabuto","Kabuto",45,30,["rock","water"],"→ Kabutops Lv.40"],
+  [141,"Kabutops","Kabutops",45,60,["rock","water"],null],
+  [142,"Aerodactyl","Aerodactyl",45,80,["rock","flying"],null],
+  [143,"Snorlax","Relaxo",25,160,["normal"],null],
+  [147,"Dratini","Dratini",45,41,["dragon"],"→ Dragonir Lv.30"],
+  [148,"Dragonair","Dragonir",45,61,["dragon"],"→ Dragoran Lv.55"],
+  [149,"Dragonite","Dragoran",45,91,["dragon","flying"],null],
+  [152,"Chikorita","Endive",45,45,["grass"],"→ Lorblatt Lv.16"],
+  [153,"Bayleef","Lorblatt",45,60,["grass"],"→ Meganie Lv.32"],
+  [154,"Meganium","Meganie",45,80,["grass"],null],
+  [155,"Cyndaquil","Feurigel",45,39,["fire"],"→ Igelavar Lv.14"],
+  [156,"Quilava","Igelavar",45,58,["fire"],"→ Tornupto Lv.36"],
+  [157,"Typhlosion","Tornupto",45,78,["fire"],null],
+  [158,"Totodile","Karnimani",45,50,["water"],"→ Tyracroc Lv.18"],
+  [159,"Croconaw","Tyracroc",45,65,["water"],"→ Impergator Lv.30"],
+  [160,"Feraligatr","Impergator",45,85,["water"],null],
+  [161,"Sentret","Wiesor",255,35,["normal"],"→ Wiesenior Lv.15"],
+  [162,"Furret","Wiesenior",90,85,["normal"],null],
+  [163,"Hoothoot","Hoothoot",255,60,["normal","flying"],"→ Noctuh Lv.20"],
+  [164,"Noctowl","Noctuh",90,100,["normal","flying"],null],
+  [165,"Ledyba","Ledyba",255,40,["bug","flying"],"→ Ledian Lv.18"],
+  [166,"Ledian","Ledian",90,55,["bug","flying"],null],
+  [167,"Spinarak","Webarak",255,40,["bug","poison"],"→ Ariados Lv.22"],
+  [168,"Ariados","Ariados",90,70,["bug","poison"],null],
+  [169,"Crobat","Iksbat",90,85,["poison","flying"],null],
+  [170,"Chinchou","Lanturn",190,75,["water","electric"],"→ Lanturn Lv.27"],
+  [171,"Lanturn","Lanturn",75,125,["water","electric"],null],
+  [172,"Pichu","Pichu",190,20,["electric"],"→ Pikachu (hohe Freundschaft)"],
+  [173,"Cleffa","Pii",150,50,["fairy"],"→ Piepi (hohe Freundschaft)"],
+  [174,"Igglybuff","Fluffeluff",170,90,["normal","fairy"],"→ Pummeluff (hohe Freundschaft)"],
+  [175,"Togepi","Togepi",190,35,["fairy"],"→ Togetic (hohe Freundschaft)"],
+  [176,"Togetic","Togetic",75,55,["fairy","flying"],"→ Togekiss (Feenstein)"],
+  [177,"Natu","Natu",190,40,["psychic","flying"],"→ Xatu Lv.25"],
+  [178,"Xatu","Xatu",75,65,["psychic","flying"],null],
+  [179,"Mareep","Voltilamm",235,55,["electric"],"→ Waaty Lv.15"],
+  [180,"Flaaffy","Waaty",120,70,["electric"],"→ Ampharos Lv.30"],
+  [181,"Ampharos","Ampharos",45,90,["electric"],null],
+  [182,"Bellossom","Blubella",45,75,["grass"],null],
+  [183,"Marill","Marill",190,70,["water","fairy"],"→ Azumarill Lv.18"],
+  [184,"Azumarill","Azumarill",75,100,["water","fairy"],null],
+  [185,"Sudowoodo","Mogelbaum",65,70,["rock"],null],
+  [186,"Politoed","Quaxo",45,90,["water"],null],
+  [187,"Hoppip","Hoppspross",255,35,["grass","flying"],"→ Hubelupf Lv.18"],
+  [188,"Skiploom","Hubelupf",120,55,["grass","flying"],"→ Papungha Lv.27"],
+  [189,"Jumpluff","Papungha",45,75,["grass","flying"],null],
+  [190,"Aipom","Griffel",45,55,["normal"],"→ Ambidiffel (Doppelklatsch lernen)"],
+  [191,"Sunkern","Sonnkern",235,30,["grass"],"→ Sonnflora (Sonnenstein)"],
+  [192,"Sunflora","Sonnflora",120,75,["grass"],null],
+  [193,"Yanma","Yanma",75,65,["bug","flying"],"→ Yanmega (Luftschnitt lernen)"],
+  [194,"Wooper","Felino",255,55,["water","ground"],"→ Morlord Lv.20"],
+  [195,"Quagsire","Morlord",90,95,["water","ground"],null],
+  [196,"Espeon","Psiana",45,65,["psychic"],null],
+  [197,"Umbreon","Nachtara",45,95,["dark"],null],
+  [198,"Murkrow","Kramurx",30,60,["dark","flying"],"→ Honchkrow (Finsterer Stein)"],
+  [199,"Slowking","Laschoking",70,95,["water","psychic"],null],
+  [200,"Misdreavus","Traunfugil",45,60,["ghost"],"→ Traunmagil (Finsterer Stein)"],
+  [201,"Unown","Icognito",225,48,["psychic"],null],
+  [202,"Wobbuffet","Wabbuffet",45,190,["psychic"],null],
+  [203,"Girafarig","Girafarig",60,70,["normal","psychic"],null],
+  [204,"Pineco","Tannza",190,50,["bug"],"→ Forstellka Lv.31"],
+  [205,"Forretress","Forstellka",75,75,["bug","steel"],null],
+  [206,"Dunsparce","Dummisel",190,100,["normal"],null],
+  [207,"Gligar","Skorgla",60,65,["ground","flying"],"→ Skorgla-E (Level nachts m. Rasiermesser)"],
+  [208,"Steelix","Stahlos",25,75,["steel","ground"],null],
+  [209,"Snubbull","Snubbull",190,60,["fairy"],"→ Granbull Lv.23"],
+  [210,"Granbull","Granbull",75,90,["fairy"],null],
+  [211,"Qwilfish","Baldorfish",45,65,["water","poison"],null],
+  [212,"Scizor","Scherox",25,70,["bug","steel"],null],
+  [213,"Shuckle","Pottrott",190,20,["bug","rock"],null],
+  [214,"Heracross","Skaraborn",45,80,["bug","fighting"],null],
+  [215,"Sneasel","Pferkel",60,55,["dark","ice"],"→ Weavile (Level nachts m. Finsterklinge)"],
+  [216,"Teddiursa","Teddiursa",120,60,["normal"],"→ Ursaring Lv.30"],
+  [217,"Ursaring","Ursaring",60,90,["normal"],null],
+  [218,"Slugma","Schneckmag",190,40,["fire"],"→ Magcargo Lv.38"],
+  [219,"Magcargo","Magcargo",75,60,["fire","rock"],null],
+  [220,"Swinub","Quiekel",225,50,["ice","ground"],"→ Keifel Lv.33"],
+  [221,"Piloswine","Keifel",75,100,["ice","ground"],"→ Mamutel (Altlied lernen)"],
+  [222,"Corsola","Corasonn",60,55,["water","rock"],null],
+  [223,"Remoraid","Remoraid",190,35,["water"],"→ Octillery Lv.25"],
+  [224,"Octillery","Octillery",75,75,["water"],null],
+  [225,"Delibird","Botogel",45,45,["ice","flying"],null],
+  [226,"Mantine","Mantirps",25,85,["water","flying"],null],
+  [227,"Skarmory","Panzaeron",25,65,["steel","flying"],null],
+  [228,"Houndour","Hunduster",190,45,["dark","fire"],"→ Hundemon Lv.24"],
+  [229,"Houndoom","Hundemon",75,75,["dark","fire"],null],
+  [230,"Kingdra","Seedraking",45,75,["water","dragon"],null],
+  [231,"Phanpy","Phanpy",120,90,["ground"],"→ Donphan Lv.25"],
+  [232,"Donphan","Donphan",60,90,["ground"],null],
+  [233,"Porygon2","Porygon2",45,85,["normal"],"→ Porygon-Z (Tausch m. Dubiosdisk)"],
+  [234,"Stantler","Damhirplex",45,73,["normal"],null],
+  [235,"Smeargle","Farbeagle",45,55,["normal"],null],
+  [236,"Tyrogue","Rabauz",75,35,["fighting"],"→ Kicklee/Nockchan/Kapoera je nach Atk/Def Lv.20"],
+  [237,"Hitmontop","Kapoera",45,50,["fighting"],null],
+  [238,"Smoochum","Kussilla",45,45,["ice","psychic"],"→ Rossana Lv.30"],
+  [239,"Elekid","Elekid",45,45,["electric"],"→ Elekid Lv.30"],
+  [240,"Magby","Magby",45,45,["fire"],"→ Magmar Lv.30"],
+  [241,"Miltank","Miltank",45,95,["normal"],null],
+  [242,"Blissey","Blissey",30,255,["normal"],null],
+  [246,"Larvitar","Larvitar",45,50,["rock","ground"],"→ Pupitar Lv.30"],
+  [247,"Pupitar","Pupitar",45,70,["rock","ground"],"→ Despotar Lv.55"],
+  [248,"Tyranitar","Despotar",45,100,["rock","dark"],null],
+  [252,"Treecko","Geckarbor",45,40,["grass"],"→ Reptain Lv.16"],
+  [253,"Grovyle","Reptain",45,50,["grass"],"→ Gewaldro Lv.36"],
+  [254,"Sceptile","Gewaldro",45,70,["grass"],null],
+  [255,"Torchic","Flemmli",45,40,["fire"],"→ Jungglut Lv.16"],
+  [256,"Combusken","Jungglut",45,60,["fire","fighting"],"→ Lohgock Lv.36"],
+  [257,"Blaziken","Lohgock",45,80,["fire","fighting"],null],
+  [258,"Mudkip","Hydropi",45,50,["water"],"→ Moorabbel Lv.16"],
+  [259,"Marshtomp","Moorabbel",45,70,["water","ground"],"→ Sumpex Lv.36"],
+  [260,"Swampert","Sumpex",45,100,["water","ground"],null],
+  [261,"Poochyena","Pochena",255,35,["dark"],"→ Magnayen Lv.18"],
+  [262,"Mightyena","Magnayen",127,70,["dark"],null],
+  [263,"Zigzagoon","Zickzack",255,38,["normal"],"→ Geradaks Lv.20"],
+  [264,"Linoone","Geradaks",90,78,["normal"],null],
+  [265,"Wurmple","Waumpel",255,45,["bug"],"→ Schaloko oder Panekon Lv.7 (zufällig)"],
+  [266,"Silcoon","Schaloko",120,50,["bug"],"→ Papinella Lv.10"],
+  [267,"Beautifly","Papinella",45,60,["bug","flying"],null],
+  [268,"Cascoon","Panekon",120,50,["bug"],"→ Pudox Lv.10"],
+  [269,"Dustox","Pudox",45,60,["bug","poison"],null],
+  [270,"Lotad","Loturzel",255,40,["water","grass"],"→ Lombrero Lv.14"],
+  [271,"Lombre","Lombrero",120,60,["water","grass"],"→ Kappalores (Wasserstein)"],
+  [272,"Ludicolo","Kappalores",45,80,["water","grass"],null],
+  [273,"Seedot","Samurzel",255,40,["grass"],"→ Blanas Lv.14"],
+  [274,"Nuzleaf","Blanas",120,60,["grass","dark"],"→ Timinuk (Blattstein)"],
+  [275,"Shiftry","Timinuk",45,90,["grass","dark"],null],
+  [276,"Taillow","Schwalbini",200,40,["normal","flying"],"→ Schwalboss Lv.22"],
+  [277,"Swellow","Schwalboss",45,60,["normal","flying"],null],
+  [278,"Wingull","Wingull",190,40,["water","flying"],"→ Pelipper Lv.25"],
+  [279,"Pelipper","Pelipper",45,60,["water","flying"],null],
+  [280,"Ralts","Ralts",235,28,["psychic","fairy"],"→ Kirlia Lv.20"],
+  [281,"Kirlia","Kirlia",120,38,["psychic","fairy"],"→ Guardevoir Lv.30 / Galagladi (Wächterstein, ♂)"],
+  [282,"Gardevoir","Guardevoir",45,68,["psychic","fairy"],null],
+  [283,"Surskit","Surskit",200,40,["bug","water"],"→ Masquito Lv.22"],
+  [284,"Masquerain","Masquito",75,70,["bug","flying"],null],
+  [285,"Shroomish","Knilz",255,60,["grass"],"→ Kapilz Lv.23"],
+  [286,"Breloom","Kapilz",90,60,["grass","fighting"],null],
+  [287,"Slakoth","Bummelz",255,60,["normal"],"→ Muntier Lv.18"],
+  [288,"Vigoroth","Muntier",120,80,["normal"],"→ Letarking Lv.36"],
+  [289,"Slaking","Letarking",45,150,["normal"],null],
+  [290,"Nincada","Nincada",255,31,["bug","ground"],"→ Ninjask Lv.20 (+Ninjatom wenn freier Platz)"],
+  [291,"Ninjask","Ninjask",120,61,["bug","flying"],null],
+  [292,"Shedinja","Ninjatom",45,1,["bug","ghost"],null],
+  [293,"Whismur","Flurmel",190,64,["normal"],"→ Lauton Lv.20"],
+  [294,"Loudred","Lauton",120,84,["normal"],"→ Krawumms Lv.40"],
+  [295,"Exploud","Krawumms",45,104,["normal"],null],
+  [296,"Makuhita","Makuhita",180,72,["fighting"],"→ Hariyama Lv.24"],
+  [297,"Hariyama","Hariyama",200,144,["fighting"],null],
+  [298,"Azurill","Azurill",150,50,["normal","fairy"],"→ Marill (hohe Freundschaft)"],
+  [299,"Nosepass","Nasgnet",255,30,["rock"],"→ Mogelbaum-E (Level im Magnetfeld)"],
+  [300,"Skitty","Eneco",255,50,["normal"],"→ Enekoro (Mondstein)"],
+  [301,"Delcatty","Enekoro",60,70,["normal"],null],
+  [302,"Sableye","Zobiris",45,50,["dark","ghost"],null],
+  [303,"Mawile","Flunkifer",45,50,["steel","fairy"],null],
+  [304,"Aron","Stollunior",180,50,["steel","rock"],"→ Stollrak Lv.32"],
+  [305,"Lairon","Stollrak",90,60,["steel","rock"],"→ Stolloss Lv.42"],
+  [306,"Aggron","Stolloss",45,70,["steel","rock"],null],
+  [307,"Meditite","Meditie",180,30,["fighting","psychic"],"→ Meditham Lv.37"],
+  [308,"Medicham","Meditham",90,60,["fighting","psychic"],null],
+  [309,"Electrike","Frizelbliz",120,40,["electric"],"→ Voltenso Lv.26"],
+  [310,"Manectric","Voltenso",45,70,["electric"],null],
+  [311,"Plusle","Plusle",200,60,["electric"],null],
+  [312,"Minun","Minun",200,60,["electric"],null],
+  [313,"Volbeat","Volbeat",150,65,["bug"],null],
+  [314,"Illumise","Illumise",150,65,["bug"],null],
+  [315,"Roselia","Roselia",150,50,["grass","poison"],"→ Roserade (Glanzstein)"],
+  [316,"Gulpin","Schlukwech",225,70,["poison"],"→ Schlukwech-E Lv.26"],
+  [317,"Swalot","Schlukwech",60,100,["poison"],null],
+  [318,"Carvanha","Kanivanha",225,45,["water","dark"],"→ Tohaido Lv.30"],
+  [319,"Sharpedo","Tohaido",60,70,["water","dark"],null],
+  [320,"Wailmer","Wailmer",125,130,["water"],"→ Wailord Lv.40"],
+  [321,"Wailord","Wailord",60,170,["water"],null],
+  [322,"Numel","Numer",255,60,["fire","ground"],"→ Camerupt Lv.33"],
+  [323,"Camerupt","Camerupt",150,70,["fire","ground"],null],
+  [324,"Torkoal","Torkoal",90,70,["fire"],null],
+  [325,"Spoink","Pitchling",255,60,["psychic"],"→ Groink Lv.32"],
+  [326,"Grumpig","Groink",60,80,["psychic"],null],
+  [327,"Spinda","Pazifog",255,60,["normal"],null],
+  [328,"Trapinch","Knacklion",255,45,["ground"],"→ Vibrava Lv.35"],
+  [329,"Vibrava","Vibrava",120,50,["ground","dragon"],"→ Libelldra Lv.45"],
+  [330,"Flygon","Libelldra",45,80,["ground","dragon"],null],
+  [331,"Cacnea","Kaktus",190,50,["grass"],"→ Kakturne Lv.32"],
+  [332,"Cacturne","Kakturne",60,70,["grass","dark"],null],
+  [333,"Swablu","Wablu",255,45,["normal","flying"],"→ Altaria Lv.35"],
+  [334,"Altaria","Altaria",45,75,["dragon","flying"],null],
+  [335,"Zangoose","Sengo",90,73,["normal"],null],
+  [336,"Seviper","Vipitis",90,73,["poison"],null],
+  [337,"Lunatone","Lunastein",45,70,["rock","psychic"],null],
+  [338,"Solrock","Sonnfel",45,70,["rock","psychic"],null],
+  [339,"Barboach","Schmerbe",190,50,["water","ground"],"→ Welsar Lv.30"],
+  [340,"Whiscash","Welsar",75,110,["water","ground"],null],
+  [341,"Corphish","Krebscorps",205,43,["water"],"→ Krebutack Lv.30"],
+  [342,"Crawdaunt","Krebutack",155,63,["water","dark"],null],
+  [343,"Baltoy","Baljro",120,40,["ground","psychic"],"→ Lepumentas Lv.36"],
+  [344,"Claydol","Lepumentas",45,60,["ground","psychic"],null],
+  [345,"Lileep","Liliep",45,66,["rock","grass"],"→ Wielie Lv.40"],
+  [346,"Cradily","Wielie",45,86,["rock","grass"],null],
+  [347,"Anorith","Anorith",45,45,["rock","bug"],"→ Armaldo Lv.40"],
+  [348,"Armaldo","Armaldo",45,75,["rock","bug"],null],
+  [349,"Feebas","Barschwa",255,20,["water"],"→ Milotic (hohe Schönheit / Tausch m. Schönheitsschuppe)"],
+  [350,"Milotic","Milotic",60,95,["water"],null],
+  [351,"Castform","Formeo",45,70,["normal"],null],
+  [352,"Kecleon","Kecleon",200,60,["normal"],null],
+  [353,"Shuppet","Shuppet",225,44,["ghost"],"→ Banette Lv.37"],
+  [354,"Banette","Banette",45,64,["ghost"],null],
+  [355,"Duskull","Zwirrlicht",190,20,["ghost"],"→ Zwirrklop Lv.37"],
+  [356,"Dusclops","Zwirrklop",90,40,["ghost"],"→ Zwirrfinst (Tausch m. Tarnmantel)"],
+  [357,"Tropius","Tropius",200,99,["grass","flying"],null],
+  [358,"Chimecho","Palimpalim",45,65,["psychic"],null],
+  [359,"Absol","Absol",30,65,["dark"],null],
+  [361,"Snorunt","Schneppke",190,50,["ice"],"→ Firnontor Lv.42 / Frospino (Dämmerstein, ♀)"],
+  [362,"Glalie","Firnontor",75,80,["ice"],null],
+  [363,"Spheal","Seemops",255,70,["ice","water"],"→ Seejong Lv.32"],
+  [364,"Sealeo","Seejong",120,90,["ice","water"],"→ Walraisa Lv.44"],
+  [365,"Walrein","Walraisa",45,110,["ice","water"],null],
+  [366,"Clamperl","Pezmura",255,35,["water"],"→ Huntail (Tausch m. Tiefseezahn) / Rosabyss (Tausch m. Tiefseeschuppe)"],
+  [367,"Huntail","Huntail",60,55,["water"],null],
+  [368,"Gorebyss","Rosabyss",60,55,["water"],null],
+  [369,"Relicanth","Relicanth",25,100,["water","rock"],null],
+  [370,"Luvdisc","Liebiskus",225,43,["water"],null],
+  [371,"Bagon","Kindwurm",45,45,["dragon"],"→ Knarksel Lv.30"],
+  [372,"Shelgon","Knarksel",45,65,["dragon"],"→ Brutalanda Lv.50"],
+  [373,"Salamence","Brutalanda",45,95,["dragon","flying"],null],
+  [374,"Beldum","Maniplo",3,40,["steel","psychic"],"→ Metang Lv.20"],
+  [375,"Metang","Metang",3,60,["steel","psychic"],"→ Metagross Lv.45"],
+  [376,"Metagross","Metagross",3,80,["steel","psychic"],null],
+  [495,"Snivy","Serpifeu",45,45,["grass"],"→ Zoruvine Lv.17"],
+  [496,"Servine","Zoruvine",45,60,["grass"],"→ Serpiroyal Lv.36"],
+  [497,"Serperior","Serpiroyal",45,75,["grass"],null],
+  [498,"Tepig","Floink",45,65,["fire"],"→ Ferkokel Lv.17"],
+  [499,"Pignite","Ferkokel",45,90,["fire","fighting"],"→ Tornambor Lv.36"],
+  [500,"Emboar","Tornambor",45,110,["fire","fighting"],null],
+  [501,"Oshawott","Ottaro",45,55,["water"],"→ Zweottaro Lv.17"],
+  [502,"Dewott","Zweottaro",45,75,["water"],"→ Admurai Lv.36"],
+  [503,"Samurott","Admurai",45,95,["water"],null],
+  [504,"Patrat","Patrat",255,45,["normal"],"→ Uruseior Lv.20"],
+  [505,"Watchog","Uruseior",255,60,["normal"],null],
+  [506,"Lillipup","Yorterrie",255,45,["normal"],"→ Pfurterre Lv.16"],
+  [507,"Herdier","Pfurterre",120,65,["normal"],"→ Hunduster Lv.32"],
+  [508,"Stoutland","Hunduster",45,85,["normal"],null],
+  [509,"Purrloin","Purrloin",255,41,["dark"],"→ Nachtleopard Lv.20"],
+  [510,"Liepard","Nachtleopard",90,64,["dark"],null],
+  [511,"Pansage","Vegimak",190,50,["grass"],"→ Vegimak-E (Blattstein)"],
+  [512,"Simisage","Vegimak",75,75,["grass"],null],
+  [513,"Pansear","Pyromak",190,50,["fire"],"→ Pyromak-E (Feuerstein)"],
+  [514,"Simisear","Pyromak",75,75,["fire"],null],
+  [515,"Panpour","Aquamak",190,50,["water"],"→ Aquamak-E (Wasserstein)"],
+  [516,"Simipour","Aquamak",75,75,["water"],null],
+  [517,"Munna","Munna",190,76,["psychic"],"→ Musharna (Mondstein)"],
+  [518,"Musharna","Musharna",75,116,["psychic"],null],
+  [519,"Pidove","Dusselgurr",255,50,["normal","flying"],"→ Taubulo Lv.21"],
+  [520,"Tranquill","Taubulo",120,62,["normal","flying"],"→ Fasasnob Lv.32"],
+  [521,"Unfezant","Fasasnob",45,80,["normal","flying"],null],
+  [522,"Blitzle","Blitzle",190,45,["electric"],"→ Zebritzle Lv.27"],
+  [523,"Zebstrika","Zebritzle",75,75,["electric"],null],
+  [524,"Roggenrola","Kiesling",255,55,["rock"],"→ Georokk Lv.25"],
+  [525,"Boldore","Georokk",120,70,["rock"],"→ Gigalith (Tausch)"],
+  [526,"Gigalith","Gigalith",45,85,["rock"],null],
+  [527,"Woobat","Flatschuh",190,55,["psychic","flying"],"→ Swoobat (hohe Freundschaft)"],
+  [528,"Swoobat","Swoobat",45,67,["psychic","flying"],null],
+  [529,"Drilbur","Drilbur",255,60,["ground"],"→ Stalobor Lv.31"],
+  [530,"Excadrill","Stalobor",60,110,["ground","steel"],null],
+  [531,"Audino","Ohrdoch",255,103,["normal"],null],
+  [532,"Timburr","Bauz",180,75,["fighting"],"→ Gurdurr Lv.25"],
+  [533,"Gurdurr","Gurdurr",90,85,["fighting"],"→ Kernschrott (Tausch)"],
+  [534,"Conkeldurr","Kernschrott",45,105,["fighting"],null],
+  [535,"Tympole","Tympole",255,50,["water"],"→ Quaxly Lv.25"],
+  [536,"Palpitoad","Quaxly",120,75,["water","ground"],"→ Quabbel Lv.36"],
+  [537,"Seismitoad","Quabbel",45,105,["water","ground"],null],
+  [538,"Throh","Throh",45,120,["fighting"],null],
+  [539,"Sawk","Sawk",45,75,["fighting"],null],
+  [540,"Sewaddle","Strawickl",255,45,["bug","grass"],"→ Strawickl-E Lv.20"],
+  [541,"Swadloon","Swadloon",120,55,["bug","grass"],"→ Durengard (hohe Freundschaft)"],
+  [542,"Leavanny","Durengard",45,75,["bug","grass"],null],
+  [543,"Venipede","Venipede",255,30,["bug","poison"],"→ Venipede-E Lv.22"],
+  [544,"Whirlipede","Whirlipede",120,40,["bug","poison"],"→ Scolipede Lv.30"],
+  [545,"Scolipede","Scolipede",45,60,["bug","poison"],null],
+  [546,"Cottonee","Waumboll",190,40,["grass","fairy"],"→ Elfun (Sonnenstein)"],
+  [547,"Whimsicott","Elfun",75,60,["grass","fairy"],null],
+  [548,"Petilil","Lilminip",190,45,["grass"],"→ Lilligant (Sonnenstein)"],
+  [549,"Lilligant","Lilligant",75,70,["grass"],null],
+  [550,"Basculin","Barschuft",190,70,["water"],null],
+  [551,"Sandile","Knaulgon",255,50,["ground","dark"],"→ Krokorok Lv.29"],
+  [552,"Krokorok","Krokorok",120,60,["ground","dark"],"→ Laukrok Lv.40"],
+  [553,"Krookodile","Laukrok",45,95,["ground","dark"],null],
+  [554,"Darumaka","Darumaka",120,70,["fire"],"→ Flampion Lv.35"],
+  [555,"Darmanitan","Flampion",60,105,["fire"],null],
+  [556,"Maractus","Maractus",255,75,["grass"],null],
+  [557,"Dwebble","Monokomp",190,50,["bug","rock"],"→ Crustle Lv.34"],
+  [558,"Crustle","Crustle",75,70,["bug","rock"],null],
+  [559,"Scraggy","Geronimatz",180,50,["dark","fighting"],"→ Geronimatz-E Lv.39"],
+  [560,"Scrafty","Scrafty",90,65,["dark","fighting"],null],
+  [561,"Sigilyph","Sigilyph",90,72,["psychic","flying"],null],
+  [562,"Yamask","Yamask",190,38,["ghost"],"→ Sarkhan Lv.34"],
+  [563,"Cofagrigus","Sarkhan",90,58,["ghost"],null],
+  [564,"Tirtouga","Tirtouga",45,54,["water","rock"],"→ Karippas Lv.37"],
+  [565,"Carracosta","Karippas",45,74,["water","rock"],null],
+  [566,"Archen","Archen",45,55,["rock","flying"],"→ Archaeodon Lv.37"],
+  [567,"Archeops","Archaeodon",45,75,["rock","flying"],null],
+  [568,"Trubbish","Trubbish",190,50,["poison"],"→ Demeteros Lv.36"],
+  [569,"Garbodor","Demeteros",60,80,["poison"],null],
+  [570,"Zorua","Zorua",75,40,["dark"],"→ Zoroark Lv.30"],
+  [571,"Zoroark","Zoroark",45,60,["dark"],null],
+  [572,"Minccino","Picochilla",255,55,["normal"],"→ Chillabell (Glanzstein)"],
+  [573,"Cinccino","Chillabell",60,75,["normal"],null],
+  [574,"Gothita","Gothita",200,45,["psychic"],"→ Gothorita Lv.32"],
+  [575,"Gothorita","Gothorita",100,60,["psychic"],"→ Gothitelle Lv.41"],
+  [576,"Gothitelle","Gothitelle",50,70,["psychic"],null],
+  [577,"Solosis","Solosis",200,45,["psychic"],"→ Duosion Lv.32"],
+  [578,"Duosion","Duosion",100,65,["psychic"],"→ Zytomega Lv.41"],
+  [579,"Reuniclus","Zytomega",50,110,["psychic"],null],
+  [580,"Ducklett","Entoron",190,52,["water","flying"],"→ Schwanett Lv.35"],
+  [581,"Swanna","Schwanett",45,75,["water","flying"],null],
+  [582,"Vanillite","Vanillish",255,36,["ice"],"→ Vanillish Lv.35"],
+  [583,"Vanillish","Vanillish",120,51,["ice"],"→ Vanilluxe Lv.47"],
+  [584,"Vanilluxe","Vanilluxe",45,71,["ice"],null],
+  [585,"Deerling","Bamelin",190,60,["normal","grass"],"→ Kronjuwild Lv.34"],
+  [586,"Sawsbuck","Kronjuwild",75,80,["normal","grass"],null],
+  [587,"Emolga","Emolga",200,55,["electric","flying"],null],
+  [588,"Karrablast","Karrablast",200,50,["bug"],"→ Cavalanzas (Tausch mit Schnuthelm)"],
+  [589,"Escavalier","Cavalanzas",75,70,["bug","steel"],null],
+  [590,"Foongus","Tarnpignon",190,69,["grass","poison"],"→ Hutsassa Lv.39"],
+  [591,"Amoonguss","Hutsassa",75,114,["grass","poison"],null],
+  [592,"Frillish","Frillish",190,55,["water","ghost"],"→ Qualimok Lv.40"],
+  [593,"Jellicent","Qualimok",60,100,["water","ghost"],null],
+  [594,"Alomomola","Alomomola",75,165,["water"],null],
+  [595,"Joltik","Wattzapf",190,50,["bug","electric"],"→ Galvantula Lv.36"],
+  [596,"Galvantula","Galvantula",75,70,["bug","electric"],null],
+  [597,"Ferroseed","Ferroseed",255,44,["grass","steel"],"→ Ferrothorn Lv.40"],
+  [598,"Ferrothorn","Ferrothorn",90,74,["grass","steel"],null],
+  [599,"Klink","Klikk",130,40,["steel"],"→ Kliklak Lv.38"],
+  [600,"Klang","Kliklak",60,60,["steel"],"→ Klikrotor Lv.49"],
+  [601,"Klinklang","Klikrotor",30,60,["steel"],null],
+  [602,"Tynamo","Tynamo",190,35,["electric"],"→ Elevoltek Lv.39"],
+  [603,"Eelektrik","Elevoltek",60,65,["electric"],"→ Eelektross (Donnerstein)"],
+  [604,"Eelektross","Eelektross",30,85,["electric"],null],
+  [605,"Elgyem","Elgyem",255,55,["psychic"],"→ Beheeyem Lv.42"],
+  [606,"Beheeyem","Beheeyem",90,75,["psychic"],null],
+  [607,"Litwick","Lichtel",190,50,["ghost","fire"],"→ Laternalos Lv.41"],
+  [608,"Lampent","Laternalos",90,60,["ghost","fire"],"→ Skelabra (Finsterer Stein)"],
+  [609,"Chandelure","Skelabra",45,60,["ghost","fire"],null],
+  [610,"Axew","Milza",75,46,["dragon"],"→ Fraxure Lv.38"],
+  [611,"Fraxure","Fraxure",60,66,["dragon"],"→ Iminarak Lv.48"],
+  [612,"Haxorus","Iminarak",45,76,["dragon"],null],
+  [613,"Cubchoo","Petznief",120,55,["ice"],"→ Bärtikal Lv.37"],
+  [614,"Beartic","Bärtikal",60,95,["ice"],null],
+  [615,"Cryogonal","Kryobal",25,70,["ice"],null],
+  [616,"Shelmet","Schnuthelm",200,50,["bug"],"→ Accelguard (Tausch mit Karrablast)"],
+  [617,"Accelgor","Accelguard",75,80,["bug"],null],
+  [618,"Stunfisk","Flunschlik",225,109,["ground","electric"],null],
+  [619,"Mienfoo","Mienfoo",180,45,["fighting"],"→ Mienshao Lv.50"],
+  [620,"Mienshao","Mienshao",45,65,["fighting"],null],
+  [621,"Druddigon","Druddigon",45,77,["dragon"],null],
+  [622,"Golett","Golett",190,59,["ground","ghost"],"→ Golurk Lv.43"],
+  [623,"Golurk","Golurk",90,89,["ground","ghost"],null],
+  [624,"Pawniard","Pawniard",120,45,["dark","steel"],"→ Bisharp Lv.52"],
+  [625,"Bisharp","Bisharp",45,65,["dark","steel"],null],
+  [626,"Bouffalant","Bisofank",45,95,["normal"],null],
+  [627,"Rufflet","Rufflet",190,70,["normal","flying"],"→ Washakwil Lv.54"],
+  [628,"Braviary","Washakwil",60,100,["normal","flying"],null],
+  [629,"Vullaby","Vullaby",190,70,["dark","flying"],"→ Mandibuzz Lv.54"],
+  [630,"Mandibuzz","Mandibuzz",60,110,["dark","flying"],null],
+  [631,"Heatmor","Heatmor",90,85,["fire"],null],
+  [632,"Durant","Durant",90,58,["bug","steel"],null],
+  [633,"Deino","Deino",45,52,["dark","dragon"],"→ Zweilous Lv.50"],
+  [634,"Zweilous","Zweilous",45,72,["dark","dragon"],"→ Trikephalo Lv.64"],
+  [635,"Hydreigon","Trikephalo",45,92,["dark","dragon"],null],
+  [636,"Larvesta","Larvesta",45,55,["bug","fire"],"→ Volcarona Lv.59"],
+  [637,"Volcarona","Volcarona",15,85,["bug","fire"],null],
+  [638,"Cobalion","Kobalium",3,91,["steel","fighting"],null],
+  [639,"Terrakion","Terrakium",3,91,["rock","fighting"],null],
+  [640,"Virizion","Virizion",3,91,["grass","fighting"],null],
+  [643,"Reshiram","Reshiram",3,100,["dragon","fire"],null],
+  [644,"Zekrom","Zekrom",3,100,["dragon","electric"],null],
+  [645,"Landorus","Landorus",3,89,["ground","flying"],null],
+  [646,"Kyurem","Kyurem",3,125,["dragon","ice"],null],
+  [647,"Keldeo","Keldeo",3,91,["water","fighting"],null],
+];
+
+const TYPE_COLORS = {
+  normal:"#9A9A7A",fire:"#E8622A",water:"#5B8FE8",electric:"#E8C820",
+  grass:"#6CB84A",ice:"#78C8C8",fighting:"#C22E28",poison:"#A33EA1",
+  ground:"#D8B048",flying:"#A98FF3",psychic:"#E83068",bug:"#A6B91A",
+  rock:"#B6A136",ghost:"#735797",dragon:"#6F35FC",dark:"#705746",
+  steel:"#B7B7CE",fairy:"#D685AD",
+};
+const TYPE_DE = {
+  normal:"Normal",fire:"Feuer",water:"Wasser",electric:"Elektro",
+  grass:"Pflanze",ice:"Eis",fighting:"Kampf",poison:"Gift",
+  ground:"Boden",flying:"Flug",psychic:"Psycho",bug:"Käfer",
+  rock:"Gestein",ghost:"Geist",dragon:"Drache",dark:"Unlicht",
+  steel:"Stahl",fairy:"Fee",
+};
+const TYPE_CHART = {
+  normal:{rock:0.5,ghost:0,steel:0.5},
+  fire:{fire:0.5,water:0.5,grass:2,ice:2,bug:2,rock:0.5,dragon:0.5,steel:2},
+  water:{fire:2,water:0.5,grass:0.5,ground:2,rock:2,dragon:0.5},
+  electric:{water:2,electric:0.5,grass:0.5,ground:0,flying:2,dragon:0.5},
+  grass:{fire:0.5,water:2,grass:0.5,poison:0.5,ground:2,flying:0.5,bug:0.5,rock:2,dragon:0.5,steel:0.5},
+  ice:{water:0.5,grass:2,ice:0.5,ground:2,flying:2,dragon:2,steel:0.5},
+  fighting:{normal:2,ice:2,poison:0.5,rock:2,bug:0.5,ghost:0,steel:2,psychic:0.5,flying:0.5,fairy:0.5,dark:2},
+  poison:{grass:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0,fairy:2},
+  ground:{fire:2,electric:2,grass:0.5,poison:2,rock:2,bug:0.5,steel:2,flying:0},
+  flying:{electric:0.5,grass:2,fighting:2,bug:2,rock:0.5,steel:0.5},
+  psychic:{fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5},
+  bug:{fire:0.5,grass:2,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,psychic:2,dark:2,fairy:0.5},
+  rock:{fire:2,ice:2,fighting:0.5,ground:0.5,flying:2,bug:2,steel:0.5},
+  ghost:{normal:0,fighting:0,poison:0.5,bug:0.5,ghost:2,dark:0.5,psychic:2},
+  dragon:{dragon:2,steel:0.5,fairy:0},
+  dark:{fighting:0.5,ghost:2,psychic:2,dark:0.5,fairy:0.5},
+  steel:{fire:0.5,water:0.5,electric:0.5,ice:2,rock:2,steel:0.5,fairy:2,fighting:2,ground:2},
+  fairy:{fire:0.5,fighting:2,poison:0.5,dragon:2,dark:2,steel:0.5},
+};
+
+function calcWeaknesses(types) {
+  const eff = {};
+  for (const atk of Object.keys(TYPE_COLORS)) {
+    let m = 1;
+    for (const def of types) m *= TYPE_CHART[atk]?.[def] ?? 1;
+    if (m !== 1) eff[atk] = m;
+  }
+  return eff;
+}
+
+// ─── BÄLLE ───────────────────────────────────────────────────────────────────
+const BALLS = [
+  { id:"poke",   name:"Pokéball",      mult:(ctx) => 1 },
+  { id:"great",  name:"Superball",     mult:(ctx) => 1.5 },
+  { id:"ultra",  name:"Hyperball",     mult:(ctx) => 2 },
+  { id:"master", name:"Meisterball",   mult:(ctx) => null, master:true },
+  { id:"net",    name:"Netzball",      mult:(ctx) => (ctx.isWater || ctx.types.includes("bug")) ? 3.5 : 1,
+     hint:"3,5× für Wasser- und Käfer-Pokémon" },
+  { id:"dive",   name:"Tauchball",     mult:(ctx) => ctx.isWater ? 3.5 : 1,
+     hint:"3,5× beim Angeln / Tauchen" },
+  { id:"dusk",   name:"Dunkelball",    mult:(ctx) => ctx.isCave ? 3.5 : 1,
+     hint:"3,5× in Höhlen und nachts" },
+  { id:"repeat", name:"Wiederholball", mult:(ctx) => ctx.owned ? 3 : 1,
+     hint:"3× wenn schon im Pokédex" },
+  { id:"timer",  name:"Zeitball",      mult:(ctx) => Math.min(4, 1 + Math.floor(ctx.turn / 10)),
+     hint:"Steigt jede 10. Runde, max 4×" },
+  { id:"quick",  name:"Schnellball",   mult:(ctx) => ctx.firstTurn ? 5 : 1,
+     hint:"5× nur in Runde 1" },
+  { id:"heal",   name:"Heilball",      mult:(ctx) => 1 },
+  { id:"luxury", name:"Luxusball",     mult:(ctx) => 1 },
+  { id:"level",  name:"Niveauball",    mult:(ctx) => 1 },
+  { id:"love",   name:"Liebesball",    mult:(ctx) => 1 },
+  { id:"friend", name:"Freundball",    mult:(ctx) => 1 },
+];
+
+const STATUS_BONUS = { none:1, sleep:2.5, freeze:2.5, paralyze:1.5, burn:1.5, poison:1.5 };
+const STATUS_DE    = { none:"Kein Status", sleep:"Schlaf", freeze:"Gefroren", paralyze:"Paralyse", burn:"Verbrennung", poison:"Vergiftung" };
+
+// ─── EXAKTE GEN V FORMEL (Bulbapedia) ────────────────────────────────────────
+// darkGrass-Multiplikator abhängig von gefangenen Pokémon im Pokédex
+const DARK_GRASS_MULT = [
+  [601, 4096/4096],   // >600  → 1.0
+  [451, 3686/4096],   // 451-600 → ~0.9
+  [301, 3277/4096],   // 301-450 → ~0.8
+  [151, 2867/4096],   // 151-300 → ~0.7
+  [30,  2048/4096],   // 30-150  → 0.5
+  [0,   1229/4096],   // <30     → ~0.3
+];
+function darkGrassFactor(caught) {
+  for (const [min, mult] of DARK_GRASS_MULT) {
+    if (caught >= min) return mult;
+  }
+  return 1229/4096;
+}
+
+// Korrekte Gen-V Catch-Formel:
+// a = floor( (3×MaxHP - 2×CurHP)/(3×MaxHP) × 4096 × darkGrass × rate × ballBonus ) × statusBonus
+// b = floor( 65536 × (a/1044480)^(1/4) )
+// p(fangen) = (b/65535)^3  [3 Shake-Checks, nicht 4!]
+// Garantierter Fang wenn a ≥ 1044480
+function calcCatch(catchRate, ballMult, hpPct, statusBonus, darkGrass) {
+  const maxHP = 100;
+  const curHP = Math.max(1, hpPct);
+  // HP-Faktor × 4096 für interne Präzision, dann darkGrass + ballBonus
+  const hpFactor = ((3 * maxHP - 2 * curHP) / (3 * maxHP)) * 4096;
+  // Standard-Rundung (round half up) für darkGrass und ballBonus laut Bulbapedia
+  const a_raw = Math.floor(hpFactor * darkGrass * catchRate * ballMult) * statusBonus;
+  const a = Math.floor(a_raw);
+  // Garantierter Fang
+  if (a >= 1044480) return 99.9;
+  // b = floor(65536 × (a/1044480)^0.25)
+  const b = Math.floor(65536 * Math.pow(Math.max(0, a) / 1044480, 0.25));
+  // p(ein Shake) = b/65535, p(fangen) = p(shake)^3
+  const pShake = Math.min(1, b / 65535);
+  return Math.min(99.9, Math.max(0, Math.pow(pShake, 3) * 100));
+}
+
+// pokemondb URL-Name: lowercase, Sonderzeichen raus, Leerzeichen → Bindestrich
+// Sonderfälle: mr-mime, farfetchd, nidoran-f, nidoran-m, etc.
+function toDbName(enName) {
+  return enName
+    .toLowerCase()
+    .replace(/♀/g, "-f").replace(/♂/g, "-m")
+    .replace(/['.:\u2019]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+// ─── EVO-KETTEN ──────────────────────────────────────────────────────────────
+// Format: Array von Stufen. Jede Stufe ist entweder:
+//   { id } = einzelne Form
+//   { branches: [{id, cond}, ...] } = Verzweigung (mehrere mögliche Entwicklungen auf gleicher Stufe)
+// cond = Bedingung als String (z.B. "Lv.16"), null für Startstufe
+const EVO_CHAINS = [
+  [{id:1},{id:2,cond:"Lv.16"},{id:3,cond:"Lv.32"}],
+  [{id:4},{id:5,cond:"Lv.16"},{id:6,cond:"Lv.36"}],
+  [{id:7},{id:8,cond:"Lv.16"},{id:9,cond:"Lv.36"}],
+  [{id:10},{id:11,cond:"Lv.7"},{id:12,cond:"Lv.10"}],
+  [{id:13},{id:14,cond:"Lv.7"},{id:15,cond:"Lv.10"}],
+  [{id:16},{id:17,cond:"Lv.18"},{id:18,cond:"Lv.36"}],
+  [{id:19},{id:20,cond:"Lv.20"}],
+  [{id:21},{id:22,cond:"Lv.20"}],
+  [{id:23},{id:24,cond:"Lv.22"}],
+  [{id:25,cond:"Donnerstein"},{id:26}], // Pikachu allein
+  [{id:172},{id:25,cond:"Freundschaft"},{id:26,cond:"Donnerstein"}],
+  [{id:27},{id:28,cond:"Lv.22"}],
+  [{id:29},{id:30,cond:"Lv.16"},{id:31,cond:"Mondstein"}],
+  [{id:32},{id:33,cond:"Lv.16"},{id:34,cond:"Mondstein"}],
+  [{id:173},{id:35,cond:"Freundschaft"},{id:36,cond:"Mondstein"}],
+  [{id:37},{id:38,cond:"Feuerstein"}],
+  [{id:174},{id:39,cond:"Freundschaft"},{id:40,cond:"Mondstein"}],
+  [{id:41},{id:42,cond:"Lv.22"},{id:169,cond:"Freundschaft"}],
+  [{id:43},{id:44,cond:"Lv.21"},{branches:[{id:45,cond:"Blattstein"},{id:182,cond:"Sonnenstein"}]}],
+  [{id:46},{id:47,cond:"Lv.24"}],
+  [{id:48},{id:49,cond:"Lv.31"}],
+  [{id:50},{id:51,cond:"Lv.26"}],
+  [{id:52},{id:53,cond:"Lv.28"}],
+  [{id:54},{id:55,cond:"Lv.33"}],
+  [{id:56},{id:57,cond:"Lv.28"}],
+  [{id:58},{id:59,cond:"Feuerstein"}],
+  [{id:60},{id:61,cond:"Lv.25"},{branches:[{id:62,cond:"Wasserstein"},{id:186,cond:"Tausch+Könkünstein"}]}],
+  [{id:63},{id:64,cond:"Lv.16"},{id:65,cond:"Tausch"}],
+  [{id:66},{id:67,cond:"Lv.28"},{id:68,cond:"Tausch"}],
+  [{id:69},{id:70,cond:"Lv.21"},{id:71,cond:"Blattstein"}],
+  [{id:72},{id:73,cond:"Lv.30"}],
+  [{id:74},{id:75,cond:"Lv.25"},{id:76,cond:"Tausch"}],
+  [{id:77},{id:78,cond:"Lv.40"}],
+  [{id:79},{branches:[{id:80,cond:"Lv.37"},{id:199,cond:"Tausch+Könkünstein"}]}],
+  [{id:81},{id:82,cond:"Lv.30"}], // Magneton→Magnezone separat
+  [{id:84},{id:85,cond:"Lv.31"}],
+  [{id:86},{id:87,cond:"Lv.34"}],
+  [{id:88},{id:89,cond:"Lv.38"}],
+  [{id:90},{id:91,cond:"Wasserstein"}],
+  [{id:92},{id:93,cond:"Lv.25"},{id:94,cond:"Tausch"}],
+  [{id:95},{id:208,cond:"Tausch+Metallmantel"}],
+  [{id:96},{id:97,cond:"Lv.26"}],
+  [{id:98},{id:99,cond:"Lv.28"}],
+  [{id:100},{id:101,cond:"Lv.30"}],
+  [{id:102},{id:103,cond:"Blattstein"}],
+  [{id:104},{id:105,cond:"Lv.28"}],
+  [{id:109},{id:110,cond:"Lv.35"}],
+  [{id:111},{id:112,cond:"Lv.42"}],
+  [{id:116},{id:117,cond:"Lv.32"},{id:230,cond:"Tausch+Drachenschuppe"}],
+  [{id:118},{id:119,cond:"Lv.33"}],
+  [{id:120},{id:121,cond:"Wasserstein"}],
+  [{id:123},{id:212,cond:"Tausch+Metallmantel"}],
+  [{id:129},{id:130,cond:"Lv.20"}],
+  [{id:133},{branches:[{id:134,cond:"Wasserstein"},{id:135,cond:"Donnerstein"},{id:136,cond:"Feuerstein"},{id:196,cond:"Freundschaft Tag"},{id:197,cond:"Freundschaft Nacht"},{id:470,cond:"Lv. Moosfels"},{id:471,cond:"Lv. Eisfels"},{id:700,cond:"Feenstein"}]}],
+  [{id:138},{id:139,cond:"Lv.40"}],
+  [{id:140},{id:141,cond:"Lv.40"}],
+  [{id:147},{id:148,cond:"Lv.30"},{id:149,cond:"Lv.55"}],
+  [{id:152},{id:153,cond:"Lv.16"},{id:154,cond:"Lv.32"}],
+  [{id:155},{id:156,cond:"Lv.14"},{id:157,cond:"Lv.36"}],
+  [{id:158},{id:159,cond:"Lv.18"},{id:160,cond:"Lv.30"}],
+  [{id:161},{id:162,cond:"Lv.15"}],
+  [{id:163},{id:164,cond:"Lv.20"}],
+  [{id:165},{id:166,cond:"Lv.18"}],
+  [{id:167},{id:168,cond:"Lv.22"}],
+  [{id:170},{id:171,cond:"Lv.27"}],
+  [{id:175},{id:176,cond:"Freundschaft"},{id:468,cond:"Feenstein"}],
+  [{id:177},{id:178,cond:"Lv.25"}],
+  [{id:179},{id:180,cond:"Lv.15"},{id:181,cond:"Lv.30"}],
+  [{id:183},{id:184,cond:"Lv.18"}],
+  [{id:187},{id:188,cond:"Lv.18"},{id:189,cond:"Lv.27"}],
+  [{id:191},{id:192,cond:"Sonnenstein"}],
+  [{id:194},{id:195,cond:"Lv.20"}],
+  [{id:198},{id:430,cond:"Finsterer Stein"}],
+  [{id:200},{id:429,cond:"Finsterer Stein"}],
+  [{id:204},{id:205,cond:"Lv.31"}],
+  [{id:209},{id:210,cond:"Lv.23"}],
+  [{id:216},{id:217,cond:"Lv.30"}],
+  [{id:218},{id:219,cond:"Lv.38"}],
+  [{id:220},{id:221,cond:"Lv.33"}],
+  [{id:223},{id:224,cond:"Lv.25"}],
+  [{id:228},{id:229,cond:"Lv.24"}],
+  [{id:231},{id:232,cond:"Lv.25"}],
+  [{id:246},{id:247,cond:"Lv.30"},{id:248,cond:"Lv.55"}],
+  [{id:252},{id:253,cond:"Lv.16"},{id:254,cond:"Lv.36"}],
+  [{id:255},{id:256,cond:"Lv.16"},{id:257,cond:"Lv.36"}],
+  [{id:258},{id:259,cond:"Lv.16"},{id:260,cond:"Lv.36"}],
+  [{id:261},{id:262,cond:"Lv.18"}],
+  [{id:263},{id:264,cond:"Lv.20"}],
+  [{id:265},{branches:[{id:266,cond:"Lv.7 (zufällig)"},{id:268,cond:"Lv.7 (zufällig)"}]}],
+  [{id:266},{id:267,cond:"Lv.10"}],
+  [{id:268},{id:269,cond:"Lv.10"}],
+  [{id:270},{id:271,cond:"Lv.14"},{id:272,cond:"Wasserstein"}],
+  [{id:273},{id:274,cond:"Lv.14"},{id:275,cond:"Blattstein"}],
+  [{id:276},{id:277,cond:"Lv.22"}],
+  [{id:278},{id:279,cond:"Lv.25"}],
+  [{id:280},{id:281,cond:"Lv.20"},{branches:[{id:282,cond:"Lv.30"},{id:475,cond:"Wächterstein ♂"}]}],
+  [{id:285},{id:286,cond:"Lv.23"}],
+  [{id:287},{id:288,cond:"Lv.18"},{id:289,cond:"Lv.36"}],
+  [{id:290},{id:291,cond:"Lv.20"}], // Ninjatom extra
+  [{id:293},{id:294,cond:"Lv.20"},{id:295,cond:"Lv.40"}],
+  [{id:296},{id:297,cond:"Lv.24"}],
+  [{id:300},{id:301,cond:"Mondstein"}],
+  [{id:304},{id:305,cond:"Lv.32"},{id:306,cond:"Lv.42"}],
+  [{id:307},{id:308,cond:"Lv.37"}],
+  [{id:309},{id:310,cond:"Lv.26"}],
+  [{id:315},{id:407,cond:"Glanzstein"}],
+  [{id:318},{id:319,cond:"Lv.30"}],
+  [{id:320},{id:321,cond:"Lv.40"}],
+  [{id:322},{id:323,cond:"Lv.33"}],
+  [{id:325},{id:326,cond:"Lv.32"}],
+  [{id:328},{id:329,cond:"Lv.35"},{id:330,cond:"Lv.45"}],
+  [{id:331},{id:332,cond:"Lv.32"}],
+  [{id:333},{id:334,cond:"Lv.35"}],
+  [{id:339},{id:340,cond:"Lv.30"}],
+  [{id:341},{id:342,cond:"Lv.30"}],
+  [{id:343},{id:344,cond:"Lv.36"}],
+  [{id:345},{id:346,cond:"Lv.40"}],
+  [{id:347},{id:348,cond:"Lv.40"}],
+  [{id:353},{id:354,cond:"Lv.37"}],
+  [{id:355},{id:356,cond:"Lv.37"},{id:477,cond:"Tausch+Tarnmantel"}],
+  [{id:361},{branches:[{id:362,cond:"Lv.42"},{id:478,cond:"Dämmerstein ♀"}]}],
+  [{id:363},{id:364,cond:"Lv.32"},{id:365,cond:"Lv.44"}],
+  [{id:366},{branches:[{id:367,cond:"Tausch+Tiefseezahn"},{id:368,cond:"Tausch+Tiefseeschuppe"}]}],
+  [{id:371},{id:372,cond:"Lv.30"},{id:373,cond:"Lv.50"}],
+  [{id:374},{id:375,cond:"Lv.20"},{id:376,cond:"Lv.45"}],
+  [{id:495},{id:496,cond:"Lv.17"},{id:497,cond:"Lv.36"}],
+  [{id:498},{id:499,cond:"Lv.17"},{id:500,cond:"Lv.36"}],
+  [{id:501},{id:502,cond:"Lv.17"},{id:503,cond:"Lv.36"}],
+  [{id:504},{id:505,cond:"Lv.20"}],
+  [{id:506},{id:507,cond:"Lv.16"},{id:508,cond:"Lv.32"}],
+  [{id:509},{id:510,cond:"Lv.20"}],
+  [{id:511},{id:512,cond:"Blattstein"}],
+  [{id:513},{id:514,cond:"Feuerstein"}],
+  [{id:515},{id:516,cond:"Wasserstein"}],
+  [{id:517},{id:518,cond:"Mondstein"}],
+  [{id:519},{id:520,cond:"Lv.21"},{id:521,cond:"Lv.32"}],
+  [{id:522},{id:523,cond:"Lv.27"}],
+  [{id:524},{id:525,cond:"Lv.25"},{id:526,cond:"Tausch"}],
+  [{id:527},{id:528,cond:"Freundschaft"}],
+  [{id:529},{id:530,cond:"Lv.31"}],
+  [{id:532},{id:533,cond:"Lv.25"},{id:534,cond:"Tausch"}],
+  [{id:535},{id:536,cond:"Lv.25"},{id:537,cond:"Lv.36"}],
+  [{id:540},{id:541,cond:"Lv.20"},{id:542,cond:"Freundschaft"}],
+  [{id:543},{id:544,cond:"Lv.22"},{id:545,cond:"Lv.30"}],
+  [{id:546},{id:547,cond:"Sonnenstein"}],
+  [{id:548},{id:549,cond:"Sonnenstein"}],
+  [{id:551},{id:552,cond:"Lv.29"},{id:553,cond:"Lv.40"}],
+  [{id:554},{id:555,cond:"Lv.35"}],
+  [{id:557},{id:558,cond:"Lv.34"}],
+  [{id:559},{id:560,cond:"Lv.39"}],
+  [{id:562},{id:563,cond:"Lv.34"}],
+  [{id:564},{id:565,cond:"Lv.37"}],
+  [{id:566},{id:567,cond:"Lv.37"}],
+  [{id:568},{id:569,cond:"Lv.36"}],
+  [{id:570},{id:571,cond:"Lv.30"}],
+  [{id:572},{id:573,cond:"Glanzstein"}],
+  [{id:574},{id:575,cond:"Lv.32"},{id:576,cond:"Lv.41"}],
+  [{id:577},{id:578,cond:"Lv.32"},{id:579,cond:"Lv.41"}],
+  [{id:580},{id:581,cond:"Lv.35"}],
+  [{id:582},{id:583,cond:"Lv.35"},{id:584,cond:"Lv.47"}],
+  [{id:585},{id:586,cond:"Lv.34"}],
+  [{id:588},{id:589,cond:"Tausch m. Schnuthelm"}],
+  [{id:616},{id:617,cond:"Tausch m. Karrablast"}],
+  [{id:590},{id:591,cond:"Lv.39"}],
+  [{id:592},{id:593,cond:"Lv.40"}],
+  [{id:595},{id:596,cond:"Lv.36"}],
+  [{id:597},{id:598,cond:"Lv.40"}],
+  [{id:599},{id:600,cond:"Lv.38"},{id:601,cond:"Lv.49"}],
+  [{id:602},{id:603,cond:"Lv.39"},{id:604,cond:"Donnerstein"}],
+  [{id:605},{id:606,cond:"Lv.42"}],
+  [{id:607},{id:608,cond:"Lv.41"},{id:609,cond:"Finsterer Stein"}],
+  [{id:610},{id:611,cond:"Lv.38"},{id:612,cond:"Lv.48"}],
+  [{id:613},{id:614,cond:"Lv.37"}],
+  [{id:619},{id:620,cond:"Lv.50"}],
+  [{id:622},{id:623,cond:"Lv.43"}],
+  [{id:624},{id:625,cond:"Lv.52"}],
+  [{id:627},{id:628,cond:"Lv.54"}],
+  [{id:629},{id:630,cond:"Lv.54"}],
+  [{id:633},{id:634,cond:"Lv.50"},{id:635,cond:"Lv.64"}],
+  [{id:636},{id:637,cond:"Lv.59"}],
+];
+
+// Lookup: pokémon-id → komplette Kette
+function collectIds(chain) {
+  const ids = [];
+  for (const stage of chain) {
+    if (stage.branches) stage.branches.forEach(b => ids.push(b.id));
+    else if (stage.id) ids.push(stage.id);
+  }
+  return ids;
+}
+const EVO_MAP = {};
+for (const chain of EVO_CHAINS) {
+  for (const id of collectIds(chain)) {
+    EVO_MAP[id] = chain;
+  }
+}
+
+// Sprite-Komponente für Evo-Chain
+function EvoSprite({ pkmnId, highlight }) {
+  const pk = BW2_POKEMON.find(x => x[0] === pkmnId);
+  if (!pk) return null;
+  return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"4px" }}>
+      <div style={{
+        borderRadius:"8px", padding:"4px",
+        background: highlight ? "rgba(255,227,78,0.15)" : "transparent",
+        border: highlight ? "1px solid rgba(255,227,78,0.4)" : "1px solid transparent",
+        transition:"all 0.2s",
+      }}>
+        <img
+          src={`https://img.pokemondb.net/sprites/black-white/normal/${toDbName(pk[1])}.png`}
+          alt={pk[2]}
+          style={{ width:48, height:48, imageRendering:"pixelated", display:"block" }}
+          onError={e => { e.target.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk[0]}.png`; }}
+        />
+      </div>
+      <a href={`https://pokemondb.net/sprites/${toDbName(pk[1])}`} target="_blank" rel="noopener noreferrer"
+        style={{ fontSize:"0.6rem", color: highlight?"#c8a840":"#3a6080", fontFamily:"Space Grotesk,sans-serif", fontWeight: highlight?700:400, textDecoration:"none", textAlign:"center", letterSpacing:"0.02em" }}>
+        {pk[2]}
+      </a>
+    </div>
+  );
+}
+
+function EvoChainDisplay({ currentId }) {
+  const chain = EVO_MAP[currentId];
+  if (!chain || chain.length <= 1) return null;
+
+  // Rendere eine Kette als horizontale Reihe mit Pfeilen
+  // Bei Verzweigungen: Pfeil → vertikale Gruppe
+  const stages = [];
+  for (let i = 0; i < chain.length; i++) {
+    const stage = chain[i];
+    if (i > 0) {
+      // Pfeil mit Bedingung
+      const cond = stage.branches ? stage.branches[0].cond : stage.cond;
+      stages.push(
+        <div key={`arrow-${i}`} style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 4px", flexShrink:0 }}>
+          <span style={{ color:"#c8a840", fontSize:"1rem", lineHeight:1 }}>→</span>
+          {cond && <span style={{ fontSize:"0.55rem", color:"#6a5820", fontFamily:"Inter,sans-serif", textAlign:"center", maxWidth:"60px", marginTop:"2px", lineHeight:1.2 }}>{cond}</span>}
+        </div>
+      );
+    }
+    if (stage.branches) {
+      stages.push(
+        <div key={`branch-${i}`} style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+          {stage.branches.map((b, bi) => (
+            <div key={bi} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+              {bi > 0 && <span style={{ fontSize:"0.55rem", color:"#6a5820", fontFamily:"Inter,sans-serif" }}>{b.cond}</span>}
+              <EvoSprite pkmnId={b.id} highlight={b.id === currentId} />
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      stages.push(<EvoSprite key={`stage-${i}`} pkmnId={stage.id} highlight={stage.id === currentId} />);
+    }
+  }
+
+  return (
+    <div style={{ marginTop:"8px", background:"rgba(255,227,78,0.04)", border:"1px solid rgba(255,227,78,0.12)", borderRadius:"6px", padding:"10px 12px" }}>
+      <div style={{ fontSize:"0.55rem", color:"#6a5820", letterSpacing:"0.1em", fontFamily:"Inter,sans-serif", marginBottom:"8px" }}>ENTWICKLUNGSKETTE</div>
+      <div style={{ display:"flex", alignItems:"center", gap:"4px", flexWrap:"wrap" }}>
+        {stages}
+      </div>
+    </div>
+  );
+}
+
+function TypeBadge({ type, small }) {
+  return (
+    <span style={{
+      background: TYPE_COLORS[type]||"#555", color:"#fff", fontWeight:700,
+      fontSize: small?"0.58rem":"0.68rem", letterSpacing:"0.06em",
+      textTransform:"uppercase", padding: small?"2px 6px":"3px 9px",
+      borderRadius:"3px", whiteSpace:"nowrap", fontFamily:"Inter,sans-serif",
+    }}>{TYPE_DE[type]||type}</span>
+  );
+}
+
+function WeakRow({ label, color, items }) {
+  if (!items.length) return null;
+  return (
+    <div style={{ marginBottom:"10px" }}>
+      <div style={{ fontSize:"0.58rem", color, letterSpacing:"0.1em", marginBottom:"6px", fontFamily:"Inter,sans-serif" }}>{label}</div>
+      <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
+        {items.map(([t,m]) => (
+          <div key={t} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
+            <TypeBadge type={t} small />
+            <span style={{ fontSize:"0.7rem", fontWeight:900, color, fontFamily:"Space Grotesk,sans-serif" }}>
+              {m===0?"0×":`${m}×`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── HAUPT ───────────────────────────────────────────────────────────────────
+function NuzlockeHelper() {
+  const [query,    setQuery]    = useState("");
+  const [selected, setSelected] = useState(null);
+  const [hpPct,    setHpPct]    = useState(50);
+  const [status,   setStatus]   = useState("none");
+  const [ball,     setBall]     = useState("poke");
+  const [isWater,   setIsWater]   = useState(false);
+  const [isCave,    setIsCave]    = useState(false);
+  const [firstTurn, setFirstTurn] = useState(false);
+  const [owned,     setOwned]     = useState(false);
+  const [turn,      setTurn]      = useState(1);
+  const [darkGrass, setDarkGrass] = useState(false);
+  const [caught,    setCaught]    = useState(100);
+  const [showList,  setShowList]  = useState(false);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase().trim();
+    return BW2_POKEMON.filter(([id,en,de]) =>
+      de.toLowerCase().includes(q) || en.toLowerCase().includes(q) || String(id)===q
+    ).slice(0,10);
+  }, [query]);
+
+  const p = selected;
+  const weaknesses = p ? calcWeaknesses(p[5]) : {};
+  const w4  = Object.entries(weaknesses).filter(([,v])=>v>=4);
+  const w2  = Object.entries(weaknesses).filter(([,v])=>v===2);
+  const res = Object.entries(weaknesses).filter(([,v])=>v>0&&v<1);
+  const imm = Object.entries(weaknesses).filter(([,v])=>v===0);
+
+  const selectedBall = BALLS.find(b=>b.id===ball);
+  const ctx = { types: p?.[5]||[], isWater, isCave, firstTurn, owned, turn };
+  const ballMult = p && selectedBall ? selectedBall.mult(ctx) : 1;
+  const dgFactor = darkGrass ? darkGrassFactor(caught) : 1;
+  const catchPct = p && !selectedBall?.master
+    ? calcCatch(p[3], ballMult, hpPct, STATUS_BONUS[status], dgFactor)
+    : p ? 100 : null;
+
+  const pctColor = catchPct==null?"#888":catchPct>60?"#4CAF7D":catchPct>25?"#F5A623":"#D64045";
+
+  const chip = (active) => ({
+    padding:"5px 10px", borderRadius:"5px", fontSize:"0.72rem",
+    fontFamily:"Space Grotesk,sans-serif", fontWeight:600, cursor:"pointer",
+    border: active?"1px solid rgba(255,255,255,0.3)":"1px solid rgba(255,255,255,0.07)",
+    background: active?"rgba(255,255,255,0.12)":"rgba(255,255,255,0.03)",
+    color: active?"#E8F0FF":"#5a6880", transition:"all 0.1s",
+  });
+  const card = { background:"#131720", border:"1px solid rgba(255,255,255,0.06)", borderRadius:"10px", padding:"16px 20px" };
+  const seclabel = { fontSize:"0.58rem", color:"#3a4860", letterSpacing:"0.12em", fontFamily:"Inter,sans-serif", marginBottom:"8px" };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:#0c0f15;}
+        ::-webkit-scrollbar{width:4px;}
+        ::-webkit-scrollbar-thumb{background:#2a3040;border-radius:2px;}
+        input::placeholder{color:#3a4555;}
+        input:focus{outline:none;border-color:rgba(255,255,255,0.2)!important;}
+        .sugg:hover{background:rgba(255,255,255,0.08)!important;}
+        input[type=range]{accent-color:#E8F0FF;}
+      `}</style>
+
+      <div style={{ minHeight:"100vh", background:"#0c0f15", padding:"20px 16px", display:"flex", flexDirection:"column", alignItems:"center", fontFamily:"Inter,sans-serif" }}>
+        <div style={{ width:"100%", maxWidth:"680px" }}>
+
+          <div style={{ marginBottom:"20px" }}>
+            <h1 style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:700, fontSize:"1.4rem", color:"#E8F0FF", letterSpacing:"-0.02em" }}>
+              Nuzlocke <span style={{ color:"#3a4860", fontWeight:400 }}>Schwarz 2</span>
+            </h1>
+            <p style={{ color:"#2a3850", fontSize:"0.65rem", letterSpacing:"0.1em", marginTop:"2px" }}>SCHWÄCHEN · CATCHRATE · ENTWICKLUNG</p>
+          </div>
+
+          {/* Suche */}
+          <div style={{ position:"relative", marginBottom:"16px" }}>
+            <input type="text" value={query}
+              onChange={e=>{ setQuery(e.target.value); setSelected(null); }}
+              placeholder="Pokémon auf Deutsch, Englisch oder Nummer…"
+              style={{ width:"100%", background:"#131720", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"8px", color:"#E8F0FF", fontSize:"0.95rem", fontFamily:"Space Grotesk,sans-serif", padding:"13px 16px" }}
+            />
+            {filtered.length>0 && !selected && (
+              <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, zIndex:200, background:"#1a2030", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"8px", overflow:"hidden" }}>
+                {filtered.map(p=>(
+                  <div key={p[0]} className="sugg"
+                    onClick={()=>{ setSelected(p); setQuery(`${p[2]} / ${p[1]}`); }}
+                    style={{ padding:"10px 16px", cursor:"pointer", display:"flex", alignItems:"center", gap:"10px", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                    <span style={{ color:"#2a3850", fontSize:"0.65rem", fontFamily:"monospace", width:"28px", flexShrink:0 }}>#{String(p[0]).padStart(3,"0")}</span>
+                    <span style={{ color:"#E8F0FF", fontWeight:600, fontFamily:"Space Grotesk,sans-serif", fontSize:"0.9rem" }}>{p[2]}</span>
+                    <span style={{ color:"#4a5870", fontSize:"0.8rem", fontFamily:"Space Grotesk,sans-serif" }}>{p[1]}</span>
+                    <div style={{ marginLeft:"auto", display:"flex", gap:"4px" }}>
+                      {p[5].map(t=><TypeBadge key={t} type={t} small/>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Liste */}
+          <div style={{ marginBottom:"20px" }}>
+            <button onClick={()=>setShowList(l=>!l)} style={{ background:"none", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"6px", color:"#3a4860", fontSize:"0.65rem", letterSpacing:"0.1em", padding:"6px 12px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
+              {showList?"▲ LISTE VERBERGEN":"▼ ALLE POKÉMON IN BW2"}
+            </button>
+            {showList && (
+              <div style={{ marginTop:"8px", background:"#131720", border:"1px solid rgba(255,255,255,0.06)", borderRadius:"8px", maxHeight:"280px", overflowY:"auto", padding:"8px" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:"2px" }}>
+                  {BW2_POKEMON.map(pk=>(
+                    <div key={pk[0]} onClick={()=>{ setSelected(pk); setQuery(`${pk[2]} / ${pk[1]}`); setShowList(false); }}
+                      style={{ padding:"5px 8px", borderRadius:"4px", cursor:"pointer", display:"flex", alignItems:"center", gap:"6px" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.05)"}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <span style={{ color:"#2a3850", fontSize:"0.55rem", fontFamily:"monospace", width:"24px", flexShrink:0 }}>#{String(pk[0]).padStart(3,"0")}</span>
+                      <div>
+                        <div style={{ color:"#c0cfe0", fontSize:"0.72rem", fontFamily:"Space Grotesk,sans-serif", fontWeight:600 }}>{pk[2]}</div>
+                        <div style={{ color:"#3a4860", fontSize:"0.58rem" }}>{pk[1]}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {p && (
+            <div style={{ display:"flex", flexDirection:"column", gap:"14px" }}>
+
+              {/* Header */}
+              <div style={{ ...card, display:"flex", alignItems:"flex-start", gap:"16px" }}>
+                {/* Gen-5-Sprite + Link */}
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"6px", flexShrink:0 }}>
+                  <img
+                    src={`https://img.pokemondb.net/sprites/black-white/normal/${toDbName(p[1])}.png`}
+                    alt={p[1]}
+                    style={{ width:80, height:80, imageRendering:"pixelated", filter:"drop-shadow(0 2px 10px rgba(0,0,0,0.7))" }}
+                    onError={e => { e.target.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p[0]}.png`; }}
+                  />
+                  <a
+                    href={`https://pokemondb.net/sprites/${toDbName(p[1])}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize:"0.55rem", color:"#3a6080", letterSpacing:"0.08em", fontFamily:"Inter,sans-serif", textDecoration:"none", border:"1px solid rgba(90,140,180,0.2)", borderRadius:"3px", padding:"2px 6px", whiteSpace:"nowrap" }}
+                  >alle Sprites ↗</a>
+                </div>
+
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:"8px", flexWrap:"wrap" }}>
+                    <span style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:700, fontSize:"1.5rem", color:"#E8F0FF" }}>{p[2]}</span>
+                    <span style={{ fontFamily:"Space Grotesk,sans-serif", color:"#3a4860", fontSize:"0.9rem" }}>{p[1]}</span>
+                    <span style={{ color:"#1e2a3a", fontSize:"0.65rem", fontFamily:"monospace", marginLeft:"auto" }}>#{String(p[0]).padStart(3,"0")}</span>
+                  </div>
+                  <div style={{ display:"flex", gap:"6px", marginTop:"6px" }}>{p[5].map(t=><TypeBadge key={t} type={t}/>)}</div>
+                  <div style={{ marginTop:"6px", display:"flex", gap:"12px", flexWrap:"wrap" }}>
+                    <span style={{ fontSize:"0.65rem", color:"#3a4860", fontFamily:"Inter,sans-serif" }}>
+                      Basis-KP: <span style={{ color:"#8a9aaa", fontWeight:600 }}>{p[4]}</span>
+                    </span>
+                    <span style={{ fontSize:"0.65rem", color:"#3a4860", fontFamily:"Inter,sans-serif" }}>
+                      Catchrate: <span style={{ color: p[3]>=150?"#4CAF7D":p[3]>=45?"#F5A623":"#D64045", fontWeight:700 }}>{p[3]}</span>
+                      <span style={{ color:"#2a3850" }}> ({p[3]>=200?"sehr leicht":p[3]>=100?"leicht":p[3]>=45?"mittel":p[3]>=10?"schwer":"sehr schwer"})</span>
+                    </span>
+                  </div>
+
+                  {/* Entwicklungskette */}
+                  <EvoChainDisplay currentId={p[0]} />
+                </div>
+              </div>
+
+              {/* Schwächen */}
+              <div style={card}>
+                <div style={seclabel}>TYP-MATCHUPS</div>
+                <WeakRow label="4× SCHWACH" color="#ff6b6e" items={w4}/>
+                <WeakRow label="2× SCHWACH" color="#ffaa77" items={w2}/>
+                <WeakRow label="RESISTENZ (½× / ¼×)" color="#5ddb99" items={res}/>
+                <WeakRow label="IMMUN (0×)" color="#445060" items={imm}/>
+                {!w4.length&&!w2.length&&!res.length&&!imm.length&&<span style={{color:"#3a4860",fontSize:"0.75rem"}}>Keine Besonderheiten</span>}
+              </div>
+
+              {/* Fangrechner */}
+              <div style={card}>
+                <div style={seclabel}>FANGRECHNER (exakte Gen-V Formel)</div>
+
+                <div style={{ marginBottom:"14px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"6px" }}>
+                    <span style={{ fontSize:"0.65rem", color:"#5a6880" }}>KP des Gegners</span>
+                    <span style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:700, color:hpPct>66?"#D64045":hpPct>33?"#F5A623":"#4CAF7D", fontSize:"0.85rem" }}>{hpPct}%</span>
+                  </div>
+                  <input type="range" min={1} max={100} value={hpPct} onChange={e=>setHpPct(+e.target.value)} style={{ width:"100%" }}/>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginTop:"3px" }}>
+                    <span style={{ fontSize:"0.55rem", color:"#2a3850" }}>1 KP</span>
+                    <span style={{ fontSize:"0.55rem", color:"#2a3850" }}>Volle KP</span>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom:"14px" }}>
+                  <div style={{ fontSize:"0.65rem", color:"#5a6880", marginBottom:"6px" }}>Status</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
+                    {Object.entries(STATUS_DE).map(([k,v])=>(
+                      <button key={k} onClick={()=>setStatus(k)} style={chip(status===k)}>{v}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom:"14px" }}>
+                  <div style={{ fontSize:"0.65rem", color:"#5a6880", marginBottom:"6px" }}>Ball</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
+                    {BALLS.map(b=>(
+                      <button key={b.id} onClick={()=>setBall(b.id)} style={chip(ball===b.id)} title={b.hint||""}>{b.name}</button>
+                    ))}
+                  </div>
+                  {selectedBall?.hint && <div style={{ marginTop:"6px", fontSize:"0.6rem", color:"#4a5870", fontFamily:"Inter,sans-serif" }}>ℹ {selectedBall.hint}</div>}
+                </div>
+
+                {/* Kontext-Optionen */}
+                <div style={{ display:"flex", flexWrap:"wrap", gap:"6px", marginBottom:"14px" }}>
+                  {(ball==="net"||ball==="dive") && <button onClick={()=>setIsWater(w=>!w)} style={chip(isWater)}>Im Wasser / Wasserpokémon</button>}
+                  {ball==="dusk"   && <button onClick={()=>setIsCave(c=>!c)}    style={chip(isCave)}>In Höhle / nachts</button>}
+                  {ball==="repeat" && <button onClick={()=>setOwned(o=>!o)}     style={chip(owned)}>Im Pokédex vorhanden</button>}
+                  {ball==="quick"  && <button onClick={()=>setFirstTurn(f=>!f)} style={chip(firstTurn)}>1. Runde</button>}
+                  {ball==="timer"  && (
+                    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                      <span style={{ fontSize:"0.65rem", color:"#5a6880" }}>Runde {turn} → {Math.min(4,1+Math.floor(turn/10)).toFixed(1)}×</span>
+                      <input type="range" min={1} max={30} value={turn} onChange={e=>setTurn(+e.target.value)} style={{ width:"100px" }}/>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dunkles Gras */}
+                <div style={{ marginBottom:"14px" }}>
+                  <div style={{ fontSize:"0.65rem", color:"#5a6880", marginBottom:"6px" }}>Umgebung</div>
+                  <button onClick={()=>setDarkGrass(d=>!d)} style={chip(darkGrass)}>⬛ Dunkles Hohes Gras</button>
+                  {darkGrass && (
+                    <div style={{ marginTop:"10px" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
+                        <span style={{ fontSize:"0.65rem", color:"#5a6880" }}>Pokémon im Pokédex</span>
+                        <span style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:700, fontSize:"0.8rem",
+                          color: caught<30?"#D64045":caught<151?"#F5A623":"#4CAF7D" }}>
+                          {caught} → {darkGrassFactor(caught).toFixed(2)}×
+                        </span>
+                      </div>
+                      <input type="range" min={0} max={649} value={caught} onChange={e=>setCaught(+e.target.value)} style={{ width:"100%" }}/>
+                      <div style={{ fontSize:"0.6rem", color:"#2a3850", marginTop:"3px" }}>
+                        {caught<30?"⚠ Unter 30: nur 0.3× – extrem schlechte Fangchancen!":
+                         caught<151?"unter 150: 0.5×":
+                         caught<301?"0.7×":caught<451?"0.8×":caught<601?"0.9×":"1.0×"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ergebnis */}
+                <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:"8px", padding:"14px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div>
+                    <div style={{ fontSize:"0.6rem", color:"#3a4860", letterSpacing:"0.1em", marginBottom:"4px" }}>FANGCHANCE</div>
+                    <div style={{ fontSize:"0.72rem", color:"#5a6880" }}>
+                      {selectedBall?.name} · {STATUS_DE[status]} · {hpPct}% KP
+                    </div>
+                    {!selectedBall?.master && (
+                      <div style={{ fontSize:"0.65rem", color:"#3a4860", marginTop:"3px" }}>
+                        Ball {typeof ballMult==="number"?`${ballMult.toFixed(2)}×`:"–"} · Status {STATUS_BONUS[status]}×{darkGrass?` · Dunkles Gras ${dgFactor.toFixed(2)}×`:""} 
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:700, fontSize:"2.4rem", color:pctColor, lineHeight:1 }}>
+                      {selectedBall?.master?"100":catchPct?.toFixed(1)}%
+                    </div>
+                    <div style={{ fontSize:"0.62rem", color:"#2a3850", marginTop:"3px" }}>
+                      {catchPct>=90?"Sicher":catchPct>=50?"Gut":catchPct>=20?"Riskant":"Sehr riskant"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(NuzlockeHelper));
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</body>
+</html>

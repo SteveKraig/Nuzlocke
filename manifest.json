@@ -1,0 +1,18 @@
+{
+  "name": "Nuzlocke Schwarz 2",
+  "short_name": "Nuzlocke BW2",
+  "description": "Pokémon Schwarz 2 Nuzlocke Helper – Schwächen, Catchrate, Entwicklungen",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0c0f15",
+  "theme_color": "#0c0f15",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
