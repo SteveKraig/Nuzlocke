@@ -11,10 +11,19 @@
   <title>Nuzlocke Schwarz 2</title>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { min-height: 100%; background: #0c0f15; }
     body { -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 2px; }
+    input::placeholder { color: #3a4555; }
+    input:focus { outline: none; border-color: rgba(255,255,255,0.2) !important; }
+    .sugg:hover { background: rgba(255,255,255,0.08) !important; }
+    input[type=range] { accent-color: #E8F0FF; }
   </style>
 </head>
 <body>
@@ -921,7 +930,7 @@ function getItemLinks(cond) {
   const links = [];
   for (const [item, wikiSlug] of Object.entries(ITEM_WIKI)) {
     if (cond.includes(item)) {
-      links.push({ item, url: `https://www.pokewiki.de/${wikiSlug}` });
+      links.push({ item, url: "https://www.pokewiki.de/"+wikiSlug });
     }
   }
   return links.length > 0 ? links : null;
@@ -941,13 +950,13 @@ function EvoSprite({ pkmnId, highlight, onSelect }) {
           border: highlight ? "1px solid rgba(255,227,78,0.4)" : "1px solid rgba(255,255,255,0.04)",
           transition:"all 0.15s",
         }}
-        title={highlight ? "" : `${pk[2]} auswählen`}
+        title={highlight ? "" : pk[2]+" auswählen"}
       >
         <img
-          src={`https://img.pokemondb.net/sprites/black-white/normal/${toDbName(pk[1])}.png`}
+          src={"https://img.pokemondb.net/sprites/black-white/normal/"+toDbName(pk[1])+".png"}
           alt={pk[2]}
           style={{ width:48, height:48, imageRendering:"pixelated", display:"block" }}
-          onError={e => { e.target.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk[0]}.png`; }}
+          onError={e => { e.target.src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"+pk[0]+".png"; }}
         />
       </div>
       <span style={{ fontSize:"0.6rem", color: highlight?"#c8a840":"#8a9aaa", fontFamily:"Space Grotesk,sans-serif", fontWeight: highlight?700:400, textAlign:"center", letterSpacing:"0.02em", cursor: onSelect?"pointer":"default" }}
@@ -969,7 +978,7 @@ function EvoChainDisplay({ currentId, onSelect }) {
       const cond = stage.branches ? stage.branches[0].cond : stage.cond;
       const itemLinks = getItemLinks(cond);
       stages.push(
-        <div key={`arrow-${i}`} style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 4px", flexShrink:0 }}>
+        <div key={"arrow-"+i} style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 4px", flexShrink:0 }}>
           <span style={{ color:"#c8a840", fontSize:"1rem", lineHeight:1 }}>→</span>
           {cond && (
             <div style={{ fontSize:"0.55rem", color:"#6a5820", fontFamily:"Inter,sans-serif", textAlign:"center", maxWidth:"72px", marginTop:"2px", lineHeight:1.3 }}>
@@ -987,7 +996,7 @@ function EvoChainDisplay({ currentId, onSelect }) {
     }
     if (stage.branches) {
       stages.push(
-        <div key={`branch-${i}`} style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+        <div key={"branch-"+i} style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
           {stage.branches.map((b, bi) => (
             <div key={bi} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
               {bi > 0 && (
@@ -995,7 +1004,7 @@ function EvoChainDisplay({ currentId, onSelect }) {
                   {b.cond}
                   {getItemLinks(b.cond)?.map(({item,url}) => (
                     <a key={item} href={url} target="_blank" rel="noopener noreferrer"
-                      style={{ display:"block", color:"#5090b0", textDecoration:"none" }}>📖 {item}</a>
+                      style={{ display:"block", color:"#5090b0", textDecoration:"none" }}>{item}</a>
                   ))}
                 </div>
               )}
@@ -1005,7 +1014,7 @@ function EvoChainDisplay({ currentId, onSelect }) {
         </div>
       );
     } else {
-      stages.push(<EvoSprite key={`stage-${i}`} pkmnId={stage.id} highlight={stage.id === currentId} onSelect={onSelect} />);
+      stages.push(<EvoSprite key={"stage-"+i} pkmnId={stage.id} highlight={stage.id === currentId} onSelect={onSelect} />);
     }
   }
 
@@ -1036,11 +1045,11 @@ function WeakRow({ label, color, items }) {
     <div style={{ marginBottom:"10px" }}>
       <div style={{ fontSize:"0.58rem", color, letterSpacing:"0.1em", marginBottom:"6px", fontFamily:"Inter,sans-serif" }}>{label}</div>
       <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
-        {items.map(([t,m]) => (
-          <div key={t} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
-            <TypeBadge type={t} small />
+        {items.map((tm) => (
+          <div key={tm[0]} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
+            <TypeBadge type={tm[0]} small />
             <span style={{ fontSize:"0.7rem", fontWeight:900, color, fontFamily:"Space Grotesk,sans-serif" }}>
-              {m===0?"0×":`${m}×`}
+              {tm[1]===0?"0x":tm[1]+"x"}
             </span>
           </div>
         ))}
@@ -1050,119 +1059,86 @@ function WeakRow({ label, color, items }) {
 }
 
 // ─── HAUPT ───────────────────────────────────────────────────────────────────
-// ─── BOSS-DATEN (Schwarz 2) ───────────────────────────────────────────────────
+// ─── BOSS-DATEN (Schwarz 2, chronologisch) ──────────────────────────────────
 const BOSSE = [
-  // Arenaleiter
-  { name:"Cheren", titel:"1. Arenaleiter · Normal", ort:"Eventura City", orden:"Grundorden",
+  { name:"Hugh", titel:"Rivale (1. Kampf)", ort:"Route 19", note:"Wählt den Konter zu deinem Starter",
+    pokemon:[{de:"Starter",id:495,lv:5}] },
+  { name:"Cheren", titel:"1. Arenaleiter - Normal", ort:"Eventura City", orden:"Grundorden",
     pokemon:[{de:"Nagelotz",id:504,lv:11},{de:"Yorkleff",id:506,lv:13}] },
-  { name:"Mica", titel:"2. Arenaleiterin · Gift", ort:"Vapydro City", orden:"Giftorden",
+  { name:"Mica", titel:"2. Arenaleiterin - Gift", ort:"Vapydro City", orden:"Giftorden",
     pokemon:[{de:"Smogon",id:109,lv:16},{de:"Rollum",id:544,lv:18}] },
-  { name:"Artie", titel:"3. Arenaleiter · Käfer", ort:"Stratos City", orden:"Käferorden",
-    pokemon:[{de:"Folikon",id:541,lv:22},{de:"Lithomith",id:557,lv:22},{de:"Matrifol",id:542,lv:24}] },
-  { name:"Kamilla", titel:"4. Arenaleiterin · Elektro", ort:"Rayono City", orden:"Voltorden",
-    pokemon:[{de:"Emolga",id:587,lv:28},{de:"Waaty",id:180,lv:28},{de:"Zebritz",id:523,lv:30}] },
-  { name:"Turner", titel:"5. Arenaleiter · Boden", ort:"Marea City", orden:"Seismoorden",
-    pokemon:[{de:"Rokkaiman",id:552,lv:29},{de:"Mebrana",id:536,lv:29},{de:"Stalobor",id:530,lv:31}] },
-  { name:"Géraldine", titel:"6. Arenaleiterin · Flug", ort:"Panaero City", orden:"Sturmorden",
-    pokemon:[{de:"Fletiamo",id:528,lv:33},{de:"Fasasnob",id:521,lv:33},{de:"Swaroness",id:581,lv:35}] },
-  { name:"Lysander", titel:"7. Arenaleiter · Drache", ort:"Draconia City", orden:"Drachenorden",
-    note:"Schwarz 2 — Weiß 2 hat Lilia mit identischen Pokémon",
-    pokemon:[{de:"Sharfax",id:611,lv:41},{de:"Shardrago",id:621,lv:41},{de:"Maxax",id:612,lv:43}] },
-  { name:"Benson", titel:"8. Arenaleiter · Wasser", ort:"Undella City", orden:"Wellenorden",
-    pokemon:[{de:"Wailord",id:321,lv:49},{de:"Mebrana",id:536,lv:49},{de:"Milotic",id:350,lv:51},{de:"Apoquallyp",id:593,lv:51}] },
-  // Rivale & Story
-  { name:"Hugh", titel:"Rivale (1. Kampf)", ort:"Route 19", note:"Wählt Konter zu deinem Starter",
-    pokemon:[{de:"Konter-Starter",id:495,lv:5}] },
-  { name:"Hugh", titel:"Rivale (Twindrake City)", ort:"Twindrake City",
-    pokemon:[{de:"Starter-Evo",id:499,lv:35},{de:"Swoobat",id:528,lv:33},{de:"Herdier",id:507,lv:33},{de:"Emolga",id:587,lv:33}] },
-  // Team Plasma
-  { name:"Colress", titel:"Team Plasma · Wissenschaftler", ort:"Route 4 (1. Kampf)",
+  { name:"Colress", titel:"Team Plasma (1. Kampf)", ort:"Route 4",
     pokemon:[{de:"Kiesling",id:524,lv:21},{de:"Nincada",id:290,lv:21},{de:"Somniam",id:517,lv:23},{de:"Fletiamo",id:528,lv:23}] },
-  { name:"Lysander/N", titel:"N (Dragonspiral Tower)", ort:"Drachenspiraltürmchen",
-    note:"Benutzt Zekrom (Schwarz 2) oder Reshiram (Weiß 2) — Lvl 70, nicht fangbar",
+  { name:"Artie", titel:"3. Arenaleiter - Käfer", ort:"Stratos City", orden:"Käferorden",
+    pokemon:[{de:"Folikon",id:541,lv:22},{de:"Lithomith",id:557,lv:22},{de:"Matrifol",id:542,lv:24}] },
+  { name:"Kamilla", titel:"4. Arenaleiterin - Elektro", ort:"Rayono City", orden:"Voltorden",
+    pokemon:[{de:"Emolga",id:587,lv:28},{de:"Waaty",id:180,lv:28},{de:"Zebritz",id:523,lv:30}] },
+  { name:"Turner", titel:"5. Arenaleiter - Boden", ort:"Marea City", orden:"Seismoorden",
+    pokemon:[{de:"Rokkaiman",id:552,lv:29},{de:"Mebrana",id:536,lv:29},{de:"Stalobor",id:530,lv:31}] },
+  { name:"Géraldine", titel:"6. Arenaleiterin - Flug", ort:"Panaero City", orden:"Sturmorden",
+    pokemon:[{de:"Fletiamo",id:528,lv:33},{de:"Fasasnob",id:521,lv:33},{de:"Swaroness",id:581,lv:35}] },
+  { name:"Hugh", titel:"Rivale (Twindrake City)", ort:"Twindrake City",
+    pokemon:[{de:"Starter-Evo",id:499,lv:33},{de:"Swoobat",id:528,lv:33},{de:"Herdier",id:507,lv:33},{de:"Emolga",id:587,lv:33}] },
+  { name:"Lysander", titel:"7. Arenaleiter - Drache", ort:"Draconia City", orden:"Drachenorden",
+    note:"Schwarz 2 - in Weiß 2 übernimmt Lilia diese Rolle",
+    pokemon:[{de:"Sharfax",id:611,lv:41},{de:"Shardrago",id:621,lv:41},{de:"Maxax",id:612,lv:43}] },
+  { name:"N", titel:"Story-Kampf (Dragonspiralturm)", ort:"Drachenspiraltürmchen",
+    note:"Zekrom Lv.70 - nicht fangbar",
     pokemon:[{de:"Zekrom",id:644,lv:70}] },
+  { name:"Benson", titel:"8. Arenaleiter - Wasser", ort:"Undella City", orden:"Wellenorden",
+    pokemon:[{de:"Wailord",id:321,lv:49},{de:"Mebrana",id:536,lv:49},{de:"Milotic",id:350,lv:51},{de:"Apoquallyp",id:593,lv:51}] },
   { name:"Ghetsis", titel:"Team Plasma Boss", ort:"Giant Chasm",
     pokemon:[{de:"Kapuno",id:633,lv:50},{de:"Kleoparda",id:510,lv:50},{de:"Toxiquak",id:454,lv:50},{de:"Duodino",id:634,lv:50},{de:"Sigilyph",id:561,lv:50},{de:"Kyurem",id:646,lv:50}] },
-  // Top 4 & Champ
-  { name:"Anissa", titel:"Top 4 – Geist / Unlicht", ort:"Pokémon-Liga",
+  { name:"Anissa", titel:"Top 4 - Geist / Unlicht", ort:"Pokémon-Liga",
     pokemon:[{de:"Echnatoll",id:563,lv:48},{de:"Apoquallyp",id:593,lv:48},{de:"Golgantes",id:623,lv:48},{de:"Skelabra",id:609,lv:50}] },
-  { name:"Astor", titel:"Top 4 – Unlicht", ort:"Pokémon-Liga",
+  { name:"Astor", titel:"Top 4 - Unlicht", ort:"Pokémon-Liga",
     pokemon:[{de:"Kleoparda",id:510,lv:48},{de:"Rabigator",id:553,lv:48},{de:"Irokex",id:560,lv:48},{de:"Caesurio",id:625,lv:50}] },
-  { name:"Kattlea", titel:"Top 4 – Psycho", ort:"Pokémon-Liga",
+  { name:"Kattlea", titel:"Top 4 - Psycho", ort:"Pokémon-Liga",
     pokemon:[{de:"Somnivora",id:518,lv:48},{de:"Zytomega",id:579,lv:48},{de:"Morbitesse",id:576,lv:48},{de:"Symvolara",id:561,lv:50}] },
-  { name:"Eugen", titel:"Top 4 – Kampf", ort:"Pokémon-Liga",
+  { name:"Eugen", titel:"Top 4 - Kampf", ort:"Pokémon-Liga",
     pokemon:[{de:"Jiutesto",id:538,lv:48},{de:"Meistagrif",id:534,lv:48},{de:"Wie-Shu",id:620,lv:48},{de:"Karadonis",id:539,lv:50}] },
-  { name:"Lilia", titel:"Champion – Drache", ort:"Pokémon-Liga", note:"Champion von Einall",
+  { name:"Lilia", titel:"Champion - Drache", ort:"Pokémon-Liga", note:"Champion von Einall",
     pokemon:[{de:"Kapuno",id:633,lv:52},{de:"Duodino",id:634,lv:52},{de:"Milza",id:610,lv:52},{de:"Maxax",id:612,lv:54},{de:"Trikephalo",id:635,lv:57}] },
 ];
 
-// ─── ROUTEN-DATEN (Schwarz 2 Nuzlocke-Locations) ─────────────────────────────
-// Jede Location: name (DE), typ (grass/water/cave/gift/static/surf), note
+// ─── ROUTEN (chronologisch bis Top 4) ────────────────────────────────────────
 const ROUTEN = [
-  // Hauptstory-Reihenfolge
-  { id:"r19",  name:"Route 19",           typ:"grass", note:"Starter-Route" },
-  { id:"r20",  name:"Route 20",           typ:"grass" },
-  { id:"ranch",name:"Floccesy Ranch",     typ:"grass", note:"Frühe Option: Marill" },
-  { id:"vb",   name:"Vapydro City",       typ:"water", note:"Angel" },
-  { id:"vbc",  name:"Virbank Complex",    typ:"grass" },
-  { id:"csc",  name:"Castelia-Kanalisation", typ:"cave" },
-  { id:"r4",   name:"Route 4",            typ:"grass", note:"Wüstenrand" },
-  { id:"des",  name:"Wüstenresort",       typ:"grass", note:"Sandsturm-Zone" },
-  { id:"r16",  name:"Route 16",           typ:"grass" },
-  { id:"r5",   name:"Route 5",            typ:"grass" },
-  { id:"lfl",  name:"Lostlorn Forest",    typ:"grass", note:"Seltene Fundorte" },
-  { id:"r6",   name:"Route 6",            typ:"grass" },
-  { id:"chst", name:"Ladenhüter-Höhle",   typ:"cave", note:"Elektromagnetische Zone" },
-  { id:"r7",   name:"Route 7",            typ:"grass" },
-  { id:"clto", name:"Celestia-Turm",      typ:"cave" },
-  { id:"revmt",name:"Reversal Mountain",  typ:"cave" },
-  { id:"stho", name:"Strange House",      typ:"cave", note:"Selten: Traunfugil" },
-  { id:"r14",  name:"Route 14",           typ:"grass", note:"Nasses Gras" },
-  { id:"r13",  name:"Route 13",           typ:"grass" },
-  { id:"r12",  name:"Route 12",           typ:"grass" },
-  { id:"vbr",  name:"Village Bridge",     typ:"grass" },
-  { id:"r11",  name:"Route 11",           typ:"grass" },
-  { id:"r9",   name:"Route 9",            typ:"grass" },
-  { id:"scar", name:"Schwarze Stadt",     typ:"grass", note:"Nur Schwarz 2" },
-  { id:"r23",  name:"Route 23",           typ:"grass" },
-  { id:"r22",  name:"Route 22",           typ:"grass" },
-  { id:"scav", name:"Seeküstenhöhle",     typ:"cave" },
-  { id:"gich", name:"Giant Chasm",        typ:"cave", note:"Kyurem-Gebiet" },
-  { id:"viro", name:"Victory Road",       typ:"cave" },
-  // Surf-Locations
-  { id:"vbs",  name:"Vapydro City (Angel)", typ:"water" },
-  { id:"und",  name:"Undella Bay",         typ:"water" },
-  { id:"mar",  name:"Marine Tube",         typ:"water" },
-  { id:"humc", name:"Humilau City (Angel)",typ:"water" },
-  { id:"r17",  name:"Route 17 (Surfen)",   typ:"water" },
-  { id:"r18",  name:"Route 18",            typ:"grass" },
-  // Post-Game
-  { id:"r1",   name:"Route 1 (Post-Game)", typ:"grass", note:"Nach Liga" },
-  { id:"r2",   name:"Route 2 (Post-Game)", typ:"grass", note:"Nach Liga" },
-  { id:"r3",   name:"Route 3",             typ:"grass" },
-  { id:"pwf",  name:"Pinwheel Forest",     typ:"grass" },
-  { id:"r10",  name:"Route 10",            typ:"grass" },
-  { id:"r15",  name:"Route 15",            typ:"grass" },
-  { id:"absh", name:"Abundant Shrine",     typ:"grass" },
-  { id:"twmh", name:"Twist Mountain",      typ:"cave" },
-  { id:"drat", name:"Dragonspiral Tower",  typ:"cave" },
-  { id:"r8",   name:"Route 8",             typ:"grass" },
-  { id:"icc",  name:"Icirrus (Moor)",      typ:"grass", note:"Nur Winter: Keifel-Linie" },
-  { id:"natp", name:"Nature Preserve",     typ:"grass", note:"Post-Game, selten: Schillernd" },
-  // Statische Encounters
-  { id:"s_ruf",  name:"★ Reshiram",         typ:"static", note:"Dragonspiralturm — Lv.70 (Schwarz 2)" },
-  { id:"s_kyu",  name:"★ Kyurem",           typ:"static", note:"Giant Chasm — Lv.70" },
-  { id:"s_kob",  name:"★ Kobalium",         typ:"static", note:"Beschwörungshöhle — Lv.45" },
-  { id:"s_ter",  name:"★ Terrakium",        typ:"static", note:"Beschwörungshöhle — Lv.45" },
-  { id:"s_vir",  name:"★ Viridium",         typ:"static", note:"Beschwörungshöhle — Lv.45" },
-  { id:"s_vol",  name:"★ Voltolos",         typ:"static", note:"Unfriedbares Pokémon (Roaming)" },
-  { id:"s_land", name:"★ Demeteros",        typ:"static", note:"Roaming, nach Voltolos" },
-  { id:"s_kel",  name:"★ Keldeo",           typ:"static", note:"Pledgewald — Event" },
-  { id:"s_vic",  name:"★ Victini",          typ:"static", note:"Liberty Garden — Event" },
-  { id:"s_hea",  name:"★ Heatran",          typ:"static", note:"Twindrake City — Lv.68, Post-Game" },
-  { id:"s_reg",  name:"★ Cresselia",        typ:"static", note:"Marvelous Bridge — Roaming" },
-  { id:"s_lat",  name:"★ Latias/Latios",    typ:"static", note:"Entsprechende Edition — Roaming" },
+  { id:"r19",   name:"Route 19",              note:"Starter-Route" },
+  { id:"r20",   name:"Route 20" },
+  { id:"ranch", name:"Floccesy Ranch",         note:"Marill möglich" },
+  { id:"vbc",   name:"Virbank Complex" },
+  { id:"vb_ang",name:"Vapydro City (Angel)" },
+  { id:"csc",   name:"Castelia-Kanalisation",  note:"Höhle" },
+  { id:"r4",    name:"Route 4",                note:"Wüstenrand" },
+  { id:"des",   name:"Wüstenresort",           note:"Sandsturm" },
+  { id:"r16",   name:"Route 16" },
+  { id:"r5",    name:"Route 5" },
+  { id:"lfl",   name:"Lostlorn Forest" },
+  { id:"r6",    name:"Route 6" },
+  { id:"chst",  name:"Ladenhüter-Höhle",       note:"Höhle" },
+  { id:"r7",    name:"Route 7" },
+  { id:"clto",  name:"Celestia-Turm",          note:"Höhle" },
+  { id:"revmt", name:"Reversal Mountain",      note:"Höhle" },
+  { id:"stho",  name:"Strange House",          note:"Selten: Traunfugil" },
+  { id:"r14",   name:"Route 14",               note:"Nasses Gras" },
+  { id:"r13",   name:"Route 13" },
+  { id:"r12",   name:"Route 12" },
+  { id:"vbr",   name:"Village Bridge" },
+  { id:"r11",   name:"Route 11" },
+  { id:"r9",    name:"Route 9" },
+  { id:"scar",  name:"Schwarze Stadt",         note:"Nur Schwarz 2" },
+  { id:"r23",   name:"Route 23" },
+  { id:"r22",   name:"Route 22" },
+  { id:"und",   name:"Undella Bay (Angel)" },
+  { id:"mar",   name:"Marine Tube (Surfen)" },
+  { id:"r17",   name:"Route 17 (Surfen)" },
+  { id:"r18",   name:"Route 18" },
+  { id:"humc",  name:"Humilau City (Angel)" },
+  { id:"scav",  name:"Seeküstenhöhle",         note:"Höhle" },
+  { id:"gich",  name:"Giant Chasm",            note:"Höhle" },
+  { id:"viro",  name:"Victory Road",           note:"Höhle" },
 ];
+
 
 
 function BossTab() {
@@ -1182,7 +1158,7 @@ function BossTab() {
   return (
     <div>
       <p style={{ fontSize:"0.65rem", color:"#2a3850", letterSpacing:"0.08em", fontFamily:"Inter,sans-serif", marginBottom:"16px" }}>
-        ARENALEITER · RIVALE · PLASMA · TOP 4 · CHAMPION
+        ARENALEITER - RIVALE - PLASMA - TOP 4 - CHAMPION
       </p>
       {BOSSE.map((boss, i) => {
         const isOpen = expanded === i;
@@ -1199,7 +1175,7 @@ function BossTab() {
                   <span style={{ fontSize:"0.65rem", color:"#4a5870", fontFamily:"Inter,sans-serif" }}>{boss.titel}</span>
                 </div>
                 <div style={{ fontSize:"0.62rem", color:"#3a4860", fontFamily:"Inter,sans-serif", marginTop:"2px" }}>
-                  {boss.ort} · Lv.{Math.min(...boss.pokemon.map(p=>p.lv))}–{Math.max(...boss.pokemon.map(p=>p.lv))}
+                  {boss.ort} - Lv.{Math.min(...boss.pokemon.map(p=>p.lv))}–{Math.max(...boss.pokemon.map(p=>p.lv))}
                 </div>
               </div>
               {boss.orden && <span style={{ fontSize:"0.55rem", color:"#4a6050", fontFamily:"Inter,sans-serif", border:"1px solid rgba(76,175,125,0.2)", borderRadius:"3px", padding:"2px 6px", whiteSpace:"nowrap" }}>{boss.orden}</span>}
@@ -1208,11 +1184,11 @@ function BossTab() {
 
             {isOpen && (
               <div style={{ padding:"12px 16px", borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-                {boss.note && <div style={{ fontSize:"0.65rem", color:"#c8a840", fontFamily:"Inter,sans-serif", marginBottom:"10px" }}>ℹ {boss.note}</div>}
+                {boss.note && <div style={{ fontSize:"0.65rem", color:"#c8a840", fontFamily:"Inter,sans-serif", marginBottom:"10px" }}>{boss.note}</div>}
                 <div style={{ display:"flex", flexWrap:"wrap", gap:"10px" }}>
                   {boss.pokemon.map((pk, j) => (
                     <div key={j} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"3px" }}>
-                      <img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk.id}.png`}
+                      <img src={"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"+pk.id+".png"}
                         alt={pk.de} width={52} height={52} style={{ imageRendering:"pixelated" }}/>
                       <span style={{ fontSize:"0.65rem", color:"#c0cfe0", fontFamily:"Space Grotesk,sans-serif", fontWeight:600 }}>{pk.de}</span>
                       <span style={{ fontSize:"0.62rem", color:"#FFE34E", fontFamily:"Space Grotesk,sans-serif", fontWeight:700 }}>Lv.{pk.lv}</span>
@@ -1229,121 +1205,82 @@ function BossTab() {
 }
 
 // ─── ROUTEN-CHECKLISTE ────────────────────────────────────────────────────────
-const TYP_ICON = { grass:"🌿", water:"🎣", cave:"🪨", static:"⭐", gift:"🎁" };
-const TYP_LABEL = { grass:"Gras", water:"Wasser/Angel", cave:"Höhle/Gebäude", static:"Statisch", gift:"Geschenk" };
-
 function RoutenTab() {
-  // Zustand im localStorage speichern
-  const STORAGE_KEY = "nuzlocke_bw2_routen";
-  const loadState = () => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
-  };
-  const [checked, setChecked] = useState(loadState);
-  const [filter, setFilter] = useState("all"); // all/open/done
+  const [boxes, setBoxes] = useState({});
 
-  const toggle = (id) => {
-    const next = { ...checked };
-    if (next[id]) delete next[id];
-    else next[id] = true;
-    setChecked(next);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+  const toggle = (id, slot) => {
+    setBoxes(prev => {
+      const n = {...prev};
+      const key = id+":"+slot;
+      if(n[key]) delete n[key]; else n[key]=true;
+      return n;
+    });
   };
 
+  const [confirmReset, setConfirmReset] = useState(false);
   const reset = () => {
-    if (confirm("Alle Häkchen zurücksetzen?")) {
-      setChecked({});
-      try { localStorage.removeItem(STORAGE_KEY); } catch {}
-    }
+    if(confirmReset){ setBoxes({}); setConfirmReset(false); }
+    else { setConfirmReset(true); setTimeout(()=>setConfirmReset(false),3000); }
   };
 
-  const done = Object.keys(checked).length;
   const total = ROUTEN.length;
-
-  const filtered = ROUTEN.filter(r => {
-    if (filter === "open") return !checked[r.id];
-    if (filter === "done") return checked[r.id];
-    return true;
-  });
-
-  // Gruppieren nach typ
-  const groups = { grass:[], water:[], cave:[], static:[], gift:[] };
-  for (const r of filtered) { if (groups[r.typ]) groups[r.typ].push(r); }
+  const filled = ROUTEN.filter(r => boxes[r.id+":1"] || boxes[r.id+":2"]).length;
 
   return (
     <div>
-      {/* Progress */}
       <div style={{ background:"#131720", border:"1px solid rgba(255,255,255,0.06)", borderRadius:"10px", padding:"14px 16px", marginBottom:"14px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" }}>
           <span style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:700, color:"#E8F0FF", fontSize:"0.9rem" }}>
-            {done} / {total} Locations
+            {filled} / {total} Routen
           </span>
-          <button onClick={reset} style={{ background:"none", border:"1px solid rgba(214,64,69,0.3)", borderRadius:"4px", color:"#D64045", fontSize:"0.6rem", padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
-            Reset
+          <button onClick={reset} style={{ background:"none", border:(confirmReset?"1px solid rgba(214,64,69,0.8)":"1px solid rgba(214,64,69,0.3)"), borderRadius:"4px", color:"#D64045", fontSize:"0.6rem", padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
+            {confirmReset ? "Sicher?" : "Reset"}
           </button>
         </div>
-        <div style={{ background:"#0c0f15", borderRadius:"4px", height:"6px", overflow:"hidden" }}>
-          <div style={{ width:`${(done/total)*100}%`, height:"100%", background:"#4CAF7D", borderRadius:"4px", transition:"width 0.3s ease" }}/>
+        <div style={{ background:"#0c0f15", borderRadius:"4px", height:"5px", overflow:"hidden" }}>
+          <div style={{ width:((filled/total)*100)+"%", height:"100%", background:"#4CAF7D", borderRadius:"4px", transition:"width 0.3s" }}/>
         </div>
       </div>
 
-      {/* Filter */}
-      <div style={{ display:"flex", gap:"5px", marginBottom:"14px" }}>
-        {[["all","Alle"],["open","Offen"],["done","Erledigt"]].map(([v,l])=>(
-          <button key={v} onClick={()=>setFilter(v)} style={{
-            padding:"5px 12px", borderRadius:"5px", fontSize:"0.68rem",
-            fontFamily:"Space Grotesk,sans-serif", fontWeight:600, cursor:"pointer",
-            border: filter===v?"1px solid rgba(255,227,78,0.4)":"1px solid rgba(255,255,255,0.07)",
-            background: filter===v?"rgba(255,227,78,0.1)":"rgba(255,255,255,0.03)",
-            color: filter===v?"#FFE34E":"#5a6880",
-          }}>{l}</button>
-        ))}
-      </div>
-
-      {/* Gruppen */}
-      {Object.entries(groups).map(([typ, routes]) => {
-        if (!routes.length) return null;
-        return (
-          <div key={typ} style={{ marginBottom:"16px" }}>
-            <div style={{ fontSize:"0.6rem", color:"#3a4860", letterSpacing:"0.12em", fontFamily:"Inter,sans-serif", marginBottom:"8px" }}>
-              {TYP_ICON[typ]} {TYP_LABEL[typ].toUpperCase()}
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
-              {routes.map(r => (
-                <div key={r.id}
-                  onClick={() => toggle(r.id)}
+      <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
+        {ROUTEN.map(r => {
+          const b1 = boxes[r.id+":1"];
+          const b2 = boxes[r.id+":2"];
+          return (
+            <div key={r.id} style={{
+              display:"flex", alignItems:"center", gap:"10px", padding:"10px 12px",
+              background: (b1||b2) ? "rgba(76,175,125,0.07)" : "#131720",
+              border: (b1||b2) ? "1px solid rgba(76,175,125,0.2)" : "1px solid rgba(255,255,255,0.05)",
+              borderRadius:"7px",
+            }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:600, fontSize:"0.82rem",
+                  color: (b1&&b2) ? "#5ddb99" : (b1||b2) ? "#a0cfb0" : "#c0cfe0",
+                }}>{r.name}</div>
+                {r.note && <div style={{ fontSize:"0.58rem", color:"#3a4860", fontFamily:"Inter,sans-serif", marginTop:"1px" }}>{r.note}</div>}
+              </div>
+              {[":1",":2"].map(slot => (
+                <div key={slot}
+                  onClick={()=>toggle(r.id, slot.slice(1))}
                   style={{
-                    display:"flex", alignItems:"center", gap:"10px", padding:"9px 12px",
-                    background: checked[r.id] ? "rgba(76,175,125,0.08)" : "#131720",
-                    border: checked[r.id] ? "1px solid rgba(76,175,125,0.25)" : "1px solid rgba(255,255,255,0.05)",
-                    borderRadius:"7px", cursor:"pointer", transition:"all 0.15s",
-                  }}>
-                  {/* Checkbox */}
-                  <div style={{
-                    width:"18px", height:"18px", borderRadius:"4px", flexShrink:0,
-                    border: checked[r.id] ? "none" : "2px solid #2a3850",
-                    background: checked[r.id] ? "#4CAF7D" : "transparent",
+                    width:"24px", height:"24px", borderRadius:"5px", flexShrink:0, cursor:"pointer",
+                    border: boxes[r.id+slot] ? "none" : "2px solid #2a3850",
+                    background: boxes[r.id+slot] ? "#4CAF7D" : "transparent",
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:"0.7rem", color:"#fff",
+                    fontSize:"0.7rem", color:"#fff", fontWeight:700,
+                    transition:"all 0.15s",
                   }}>
-                    {checked[r.id] ? "✓" : ""}
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontFamily:"Space Grotesk,sans-serif", fontWeight:600, fontSize:"0.82rem",
-                      color: checked[r.id] ? "#5ddb99" : "#c0cfe0",
-                      textDecoration: checked[r.id] ? "line-through" : "none",
-                    }}>{r.name}</div>
-                    {r.note && <div style={{ fontSize:"0.58rem", color:"#3a4860", fontFamily:"Inter,sans-serif", marginTop:"1px" }}>{r.note}</div>}
-                  </div>
-                  {typ==="static" && <span style={{ fontSize:"0.6rem", color:"#FFE34E", fontFamily:"Inter,sans-serif" }}>★</span>}
+                  {boxes[r.id+slot] ? "OK" : ""}
                 </div>
               ))}
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
+
 
 function NuzlockeHelper() {
   const [query,    setQuery]    = useState("");
@@ -1364,17 +1301,17 @@ function NuzlockeHelper() {
   const filtered = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase().trim();
-    return BW2_POKEMON.filter(([id,en,de]) =>
-      de.toLowerCase().includes(q) || en.toLowerCase().includes(q) || String(id)===q
+    return BW2_POKEMON.filter((pk) =>
+      pk[2].toLowerCase().includes(q) || pk[1].toLowerCase().includes(q) || String(pk[0])===q
     ).slice(0,10);
   }, [query]);
 
   const p = selected;
   const weaknesses = p ? calcWeaknesses(p[5]) : {};
-  const w4  = Object.entries(weaknesses).filter(([,v])=>v>=4);
-  const w2  = Object.entries(weaknesses).filter(([,v])=>v===2);
-  const res = Object.entries(weaknesses).filter(([,v])=>v>0&&v<1);
-  const imm = Object.entries(weaknesses).filter(([,v])=>v===0);
+  const w4  = Object.entries(weaknesses).filter((e)=>e[1]>=4);
+  const w2  = Object.entries(weaknesses).filter((e)=>e[1]===2);
+  const res = Object.entries(weaknesses).filter((e)=>e[1]>0&&e[1]<1);
+  const imm = Object.entries(weaknesses).filter((e)=>e[1]===0);
 
   const selectedBall = BALLS.find(b=>b.id===ball);
   const ctx = { types: p?.[5]||[], isWater, isCave, firstTurn, owned, turn };
@@ -1386,11 +1323,11 @@ function NuzlockeHelper() {
 
   // ── Schnell-Presets ──────────────────────────────────────────────────────
   const PRESETS = [
-    { label:"1 KP · Schlaf",    hp:1,  status:"sleep" },
-    { label:"1 KP · kein",      hp:1,  status:"none" },
-    { label:"25% · Schlaf",     hp:25, status:"sleep" },
-    { label:"50% · kein",       hp:50, status:"none" },
-    { label:"Volle KP · kein",  hp:100,status:"none" },
+    { label:"1 KP - Schlaf",    hp:1,  status:"sleep" },
+    { label:"1 KP - kein",      hp:1,  status:"none" },
+    { label:"25% - Schlaf",     hp:25, status:"sleep" },
+    { label:"50% - kein",       hp:50, status:"none" },
+    { label:"Volle KP - kein",  hp:100,status:"none" },
   ];
 
   const pctColor = catchPct==null?"#888":catchPct>60?"#4CAF7D":catchPct>25?"#F5A623":"#D64045";
@@ -1406,20 +1343,7 @@ function NuzlockeHelper() {
   const seclabel = { fontSize:"0.58rem", color:"#3a4860", letterSpacing:"0.12em", fontFamily:"Inter,sans-serif", marginBottom:"8px" };
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:#0c0f15;}
-        ::-webkit-scrollbar{width:4px;}
-        ::-webkit-scrollbar-thumb{background:#2a3040;border-radius:2px;}
-        input::placeholder{color:#3a4555;}
-        input:focus{outline:none;border-color:rgba(255,255,255,0.2)!important;}
-        .sugg:hover{background:rgba(255,255,255,0.08)!important;}
-        input[type=range]{accent-color:#E8F0FF;}
-      `}</style>
-
-      <div style={{ minHeight:"100vh", background:"#0c0f15", padding:"20px 16px", display:"flex", flexDirection:"column", alignItems:"center", fontFamily:"Inter,sans-serif" }}>
+    <div style={{ minHeight:"100vh", background:"#0c0f15", padding:"20px 16px", display:"flex", flexDirection:"column", alignItems:"center", fontFamily:"Inter,sans-serif" }}>
         <div style={{ width:"100%", maxWidth:"680px" }}>
 
           <div style={{ marginBottom:"20px" }}>
@@ -1428,14 +1352,14 @@ function NuzlockeHelper() {
             </h1>
             {/* Tab Navigation */}
             <div style={{ display:"flex", gap:"4px", marginTop:"12px" }}>
-              {[["dex","🔍 Pokédex"],["bosse","⚔️ Bosskämpfe"],["routen","📍 Routen"]].map(([id,label])=>(
-                <button key={id} onClick={()=>setActiveTab(id)} style={{
+              {[["dex","Pokédex"],["bosse","Bosskämpfe"],["routen","Routen"]].map((tab)=>(
+                <button key={tab[0]} onClick={()=>setActiveTab(tab[0])} style={{
                   padding:"7px 14px", borderRadius:"6px", fontSize:"0.72rem",
                   fontFamily:"Space Grotesk,sans-serif", fontWeight:600, cursor:"pointer",
-                  border: activeTab===id ? "1px solid rgba(255,227,78,0.4)" : "1px solid rgba(255,255,255,0.08)",
-                  background: activeTab===id ? "rgba(255,227,78,0.1)" : "rgba(255,255,255,0.03)",
-                  color: activeTab===id ? "#FFE34E" : "#5a6880", transition:"all 0.15s",
-                }}>{label}</button>
+                  border: activeTab===tab[0] ? "1px solid rgba(255,227,78,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                  background: activeTab===tab[0] ? "rgba(255,227,78,0.1)" : "rgba(255,255,255,0.03)",
+                  color: activeTab===tab[0] ? "#FFE34E" : "#5a6880", transition:"all 0.15s",
+                }}>{tab[1]}</button>
               ))}
             </div>
           </div>
@@ -1455,7 +1379,7 @@ function NuzlockeHelper() {
               <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, zIndex:200, background:"#1a2030", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"8px", overflow:"hidden" }}>
                 {filtered.map(p=>(
                   <div key={p[0]} className="sugg"
-                    onClick={()=>{ setSelected(p); setQuery(`${p[2]} / ${p[1]}`); }}
+                    onClick={()=>{ setSelected(p); setQuery(p[2]+" / "+p[1]); }}
                     style={{ padding:"10px 16px", cursor:"pointer", display:"flex", alignItems:"center", gap:"10px", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
                     <span style={{ color:"#2a3850", fontSize:"0.65rem", fontFamily:"monospace", width:"28px", flexShrink:0 }}>#{String(p[0]).padStart(3,"0")}</span>
                     <span style={{ color:"#E8F0FF", fontWeight:600, fontFamily:"Space Grotesk,sans-serif", fontSize:"0.9rem" }}>{p[2]}</span>
@@ -1479,7 +1403,7 @@ function NuzlockeHelper() {
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))", gap:"2px" }}>
                   {BW2_POKEMON.map(pk=>(
                     <div key={pk[0]}
-                      onClick={()=>{ setSelected(pk); setQuery(`${pk[2]} / ${pk[1]}`); setShowList(false); }}
+                      onClick={()=>{ setSelected(pk); setQuery(pk[2]+" / "+pk[1]); setShowList(false); }}
                       style={{ padding:"5px 6px", borderRadius:"6px", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:"2px",
                         background: p && selected && p[0]===pk[0]?"rgba(255,227,78,0.1)":"transparent",
                         border: p && selected && p[0]===pk[0]?"1px solid rgba(255,227,78,0.3)":"1px solid transparent",
@@ -1487,7 +1411,7 @@ function NuzlockeHelper() {
                       onMouseEnter={e=>{ if(!(p&&p[0]===pk[0])) e.currentTarget.style.background="rgba(255,255,255,0.05)"; }}
                       onMouseLeave={e=>{ if(!(p&&p[0]===pk[0])) e.currentTarget.style.background="transparent"; }}>
                       <img
-                        src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk[0]}.png`}
+                        src={"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"+pk[0]+".png"}
                         alt={pk[2]} width={40} height={40}
                         style={{ imageRendering:"pixelated" }}
                       />
@@ -1508,16 +1432,16 @@ function NuzlockeHelper() {
                 {/* Gen-5-Sprite + Links */}
                 <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"5px", flexShrink:0 }}>
                   <img
-                    src={`https://img.pokemondb.net/sprites/black-white/normal/${toDbName(p[1])}.png`}
+                    src={"https://img.pokemondb.net/sprites/black-white/normal/"+toDbName(p[1])+".png"}
                     alt={p[1]}
                     style={{ width:80, height:80, imageRendering:"pixelated", filter:"drop-shadow(0 2px 10px rgba(0,0,0,0.7))" }}
-                    onError={e => { e.target.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p[0]}.png`; }}
+                    onError={e => { e.target.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"+p[0]+".png"; }}
                   />
-                  <a href={`https://pokemondb.net/sprites/${toDbName(p[1])}`} target="_blank" rel="noopener noreferrer"
+                  <a href={"https://pokemondb.net/sprites/"+toDbName(p[1])} target="_blank" rel="noopener noreferrer"
                     style={{ fontSize:"0.52rem", color:"#3a6080", letterSpacing:"0.06em", fontFamily:"Inter,sans-serif", textDecoration:"none", border:"1px solid rgba(90,140,180,0.2)", borderRadius:"3px", padding:"2px 5px", whiteSpace:"nowrap" }}>
                     Sprites ↗
                   </a>
-                  <a href={`https://www.pokewiki.de/${encodeURIComponent(p[2])}/Attacken#5._Generation`} target="_blank" rel="noopener noreferrer"
+                  <a href={"https://www.pokewiki.de/"+encodeURIComponent(p[2])+"/Attacken#5._Generation"} target="_blank" rel="noopener noreferrer"
                     style={{ fontSize:"0.52rem", color:"#3a7050", letterSpacing:"0.06em", fontFamily:"Inter,sans-serif", textDecoration:"none", border:"1px solid rgba(90,180,140,0.2)", borderRadius:"3px", padding:"2px 5px", whiteSpace:"nowrap" }}>
                     Attacken ↗
                   </a>
@@ -1541,7 +1465,7 @@ function NuzlockeHelper() {
                   </div>
 
                   {/* Entwicklungskette */}
-                  <EvoChainDisplay currentId={p[0]} onSelect={pk=>{ setSelected(pk); setQuery(`${pk[2]} / ${pk[1]}`); }} />
+                  <EvoChainDisplay currentId={p[0]} onSelect={pk=>{ setSelected(pk); setQuery(pk[2]+" / "+pk[1]); }} />
                 </div>
               </div>
 
@@ -1587,8 +1511,8 @@ function NuzlockeHelper() {
                 <div style={{ marginBottom:"14px" }}>
                   <div style={{ fontSize:"0.65rem", color:"#5a6880", marginBottom:"6px" }}>Status</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
-                    {Object.entries(STATUS_DE).map(([k,v])=>(
-                      <button key={k} onClick={()=>setStatus(k)} style={chip(status===k)}>{v}</button>
+                    {Object.entries(STATUS_DE).map((kv)=>(
+                      <button key={kv[0]} onClick={()=>setStatus(kv[0])} style={chip(status===kv[0])}>{kv[1]}</button>
                     ))}
                   </div>
                 </div>
@@ -1600,7 +1524,7 @@ function NuzlockeHelper() {
                       <button key={b.id} onClick={()=>setBall(b.id)} style={chip(ball===b.id)} title={b.hint||""}>{b.name}</button>
                     ))}
                   </div>
-                  {selectedBall?.hint && <div style={{ marginTop:"6px", fontSize:"0.6rem", color:"#4a5870", fontFamily:"Inter,sans-serif" }}>ℹ {selectedBall.hint}</div>}
+                  {selectedBall?.hint && <div style={{ marginTop:"6px", fontSize:"0.6rem", color:"#4a5870", fontFamily:"Inter,sans-serif" }}>{selectedBall.hint}</div>}
                 </div>
 
                 {/* Kontext-Optionen */}
@@ -1632,7 +1556,7 @@ function NuzlockeHelper() {
                       </div>
                       <input type="range" min={0} max={649} value={caught} onChange={e=>setCaught(+e.target.value)} style={{ width:"100%" }}/>
                       <div style={{ fontSize:"0.6rem", color:"#2a3850", marginTop:"3px" }}>
-                        {caught<30?"⚠ Unter 30: nur 0.3× – extrem schlechte Fangchancen!":
+                        {caught<30?"! Unter 30: nur 0.3× – extrem schlechte Fangchancen!":
                          caught<151?"unter 150: 0.5×":
                          caught<301?"0.7×":caught<451?"0.8×":caught<601?"0.9×":"1.0×"}
                       </div>
@@ -1645,11 +1569,11 @@ function NuzlockeHelper() {
                   <div>
                     <div style={{ fontSize:"0.6rem", color:"#3a4860", letterSpacing:"0.1em", marginBottom:"4px" }}>FANGCHANCE</div>
                     <div style={{ fontSize:"0.72rem", color:"#5a6880" }}>
-                      {selectedBall?.name} · {STATUS_DE[status]} · {hpPct}% KP
+                      {selectedBall?.name} - {STATUS_DE[status]} - {hpPct}% KP
                     </div>
                     {!selectedBall?.master && (
                       <div style={{ fontSize:"0.65rem", color:"#3a4860", marginTop:"3px" }}>
-                        Ball {typeof ballMult==="number"?`${ballMult.toFixed(2)}×`:"–"} · Status {STATUS_BONUS[status]}×{darkGrass?` · Dunkles Gras ${dgFactor.toFixed(2)}×`:""} 
+                        Ball {typeof ballMult==="number"?(ballMult.toFixed(2)+"x"):"–"} - Status {STATUS_BONUS[status]}x{darkGrass?" - Dunkles Gras "+(dgFactor.toFixed(2))+"x":""} 
                       </div>
                     )}
                   </div>
@@ -1668,7 +1592,7 @@ function NuzlockeHelper() {
           )}
         </div>)} {/* end dex tab */}
       </div>
-    </>
+    </div>
   );
 }
 
